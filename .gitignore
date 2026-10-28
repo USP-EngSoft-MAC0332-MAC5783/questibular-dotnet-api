@@ -43,6 +43,7 @@ ScaffoldingReadMe.txt
 ~$*
 *~
 CodeCoverage/
+coverage.*
 
 # MSBuild Binary and Structured Log
 *.binlog
@@ -55,3 +56,9 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+**/.sonarqube/
+**/.scannerwork/
+**/.sonar/
+**/publish/
+**/certs/
