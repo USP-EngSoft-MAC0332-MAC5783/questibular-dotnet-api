@@ -5,8 +5,6 @@ WORKDIR /src
 # Copia os .csproj primeiro (aproveita cache do Docker)
 COPY ["src/Portfolio.Api/Portfolio.Api.csproj", "src/Portfolio.Api/"]
 COPY ["src/Portfolio.ApiBase/Portfolio.ApiBase.csproj", "src/Portfolio.ApiBase/"]
-COPY ["src/Portfolio.Domain/Portfolio.Domain.csproj", "src/Portfolio.Domain/"]
-COPY ["src/Portfolio.DataAccess/Portfolio.DataAccess.csproj", "src/Portfolio.DataAccess/"]
 COPY ["Directory.Packages.props", "."]
 COPY ["Portfolio.slnx", "."]
 
