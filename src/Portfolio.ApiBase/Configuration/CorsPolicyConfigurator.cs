@@ -30,11 +30,11 @@ public static partial class CorsPolicyConfigurator
     /// <summary>
     /// Loads CORS configurations from appsettings.json and overrides them with env vars.
     /// </summary>
-    private static CorsSettings LoadCorsSettings(IConfiguration configuration, ILogger logger)
+    public static CorsSettings LoadCorsSettings(IConfiguration configuration, ILogger logger)
     {
         var settings = configuration.GetSection("Cors").Get<CorsSettings>() ?? new CorsSettings();
 
-        // Sobrescreve com env vars (se existirem)
+        // override with env vars
         string? originsRaw = configuration[ENV_CORS_ALLOWED_ORIGINS];
         if (!string.IsNullOrEmpty(originsRaw))
         {
@@ -110,7 +110,6 @@ public static partial class CorsPolicyConfigurator
         else
         {
             LogNoOriginsConfigured(logger);
-            builder.AllowAnyOrigin();
         }
 
         // 2. HTTP METHODS

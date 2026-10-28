@@ -1,3 +1,8 @@
 <Solution>
-  <Project Path="Portfolio.ApiBase/Portfolio.ApiBase.csproj" />
+  <Folder Name="/src/">
+    <Project Path="src/Portfolio.ApiBase/Portfolio.ApiBase.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Portfolio.ApiBase.Tests/Portfolio.ApiBase.Tests.csproj" />
+  </Folder>
 </Solution>

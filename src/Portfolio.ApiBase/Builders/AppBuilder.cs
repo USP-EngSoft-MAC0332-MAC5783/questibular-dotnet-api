@@ -5,14 +5,13 @@ namespace Portfolio.ApiBase.Builders;
 /// Uses the Fluent Builder pattern to abstract the ASP.NET Core pipeline setup.
 /// </summary>
 /// <typeparam name="TBuilder">The concrete builder type.</typeparam>
-public abstract class AppBuilder<TBuilder> where TBuilder: AppBuilder<TBuilder>
+public abstract partial class AppBuilder<TBuilder> where TBuilder: AppBuilder<TBuilder>
 {
     protected readonly WebApplicationBuilder _builder;
     protected readonly ILogger _logger;
     private bool _useHttpsRedirection = true;
     private bool _useCors = false;
     private bool _useSwagger = true;
-    private bool _useWarmup = true;
     private bool _useAuthentication = false;
     private bool _useAuthorization = false;
     protected Action<SwaggerUIOptions>? _swaggerUiCustomization;
@@ -106,7 +105,7 @@ public abstract class AppBuilder<TBuilder> where TBuilder: AppBuilder<TBuilder>
                 configureSwaggerGen
             );
 
-            _logger.LogInformation("Swagger configured");
+            LogSwaggerConfigured(_logger);
         }
 
         return (TBuilder) this;
@@ -127,15 +126,10 @@ public abstract class AppBuilder<TBuilder> where TBuilder: AppBuilder<TBuilder>
     /// <summary>
     /// Registers the warmup hosted service to execute initialization steps on startup.
     /// </summary>
-    public virtual TBuilder UseWarmup(bool enable = true)
+    public virtual TBuilder UseWarmup()
     {
-        _useWarmup = enable;
-
-        if(_useWarmup)
-        {
-            _builder.Services.AddHostedService<WarmupService>();
-            _logger.LogInformation("Warmup registered.");
-        }
+        _builder.Services.AddHostedService<WarmupService>();
+        LogWarmupRegistered(_logger);
 
         return (TBuilder)this;
     }
@@ -174,7 +168,7 @@ public abstract class AppBuilder<TBuilder> where TBuilder: AppBuilder<TBuilder>
     /// </summary>
     public virtual WebApplication Build()
     {
-        _logger.LogInformation("Building application...");
+        LogBuildingApplication(_logger);
 
         Configure();
 
@@ -203,7 +197,7 @@ public abstract class AppBuilder<TBuilder> where TBuilder: AppBuilder<TBuilder>
         app.MapHealthChecks("/health");
         app.MapControllers();
 
-        _logger.LogInformation("Application configured successfully!");
+        LogApplicationConfiguredSuccessfully(_logger);
 
         return app;
     }
@@ -217,4 +211,20 @@ public abstract class AppBuilder<TBuilder> where TBuilder: AppBuilder<TBuilder>
         app.Run();
         return app;
     }
+
+    #region Logs (source-generated)
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Swagger configured")]
+    private static partial void LogSwaggerConfigured(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Warmup registered.")]
+    private static partial void LogWarmupRegistered(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Building application...")]
+    private static partial void LogBuildingApplication(ILogger logger);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Application configured successfully!")]
+    private static partial void LogApplicationConfiguredSuccessfully(ILogger logger);
+
+    #endregion
 }

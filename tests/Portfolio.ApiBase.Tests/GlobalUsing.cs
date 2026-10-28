@@ -1,0 +1,11 @@
+global using FluentAssertions;
+global using Microsoft.AspNetCore.Http;
+global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.Logging;
+global using Moq;
+global using Portfolio.ApiBase.Caching;
+global using Portfolio.ApiBase.Configuration;
+global using Portfolio.ApiBase.Services;
+global using System.Collections.Generic;
+global using System.Security.Claims;
+global using Xunit;

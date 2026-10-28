@@ -17,7 +17,7 @@ public static partial class HttpsConfigurator
     /// <summary>
     /// Loads HTTPS configurations from appsettings.json and overrides them with env vars.
     /// </summary>
-    private static HttpsSettings LoadHttpsSettings(IConfiguration configuration, ILogger logger)
+    public static HttpsSettings LoadHttpsSettings(IConfiguration configuration, ILogger logger)
     {
         var settings = configuration.GetSection("Https").Get<HttpsSettings>() ?? new HttpsSettings();
         configuration.GetSection("Https").Bind(settings);

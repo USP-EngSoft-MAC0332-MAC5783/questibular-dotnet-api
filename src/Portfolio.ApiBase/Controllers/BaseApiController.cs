@@ -14,7 +14,8 @@ public abstract class BaseApiController<TController> : ControllerBase where TCon
     protected ILogger<TController> Logger { get; }
     protected IApplicationContextService AppContext { get; }
 
-    protected BaseApiController(ILogger<TController> logger, IApplicationContextService applicationContextService)
+    // SONAR ignores S6672
+    protected BaseApiController(ILogger<TController> logger, IApplicationContextService applicationContextService) // NOSONAR
     {
         Logger = logger ?? throw new ArgumentNullException(nameof(logger));
         AppContext = applicationContextService ?? throw new ArgumentNullException(nameof(applicationContextService));

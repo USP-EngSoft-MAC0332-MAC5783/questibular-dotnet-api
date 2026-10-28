@@ -98,6 +98,11 @@ public static partial class SwaggerConfigurator
                     Scheme = schemeName.ToLowerInvariant(),
                     BearerFormat = "JWT"
                 });
+
+                options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+                {
+                    [new OpenApiSecuritySchemeReference(schemeName, document)] = []
+                });
             }
 
             configureGen?.Invoke(options);
