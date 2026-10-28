@@ -4,7 +4,7 @@ Portfolio API is designed for **.NET 10** and follows the principles of **Hexago
 
 The primary architectural goal is to establish strict boundaries, ensuring that the core business rules (the Domain) remain completely isolated from external concerns such as databases, web frameworks, and third-party libraries. This document outlines the planned structural design.
 
-## Proposed Solution Structure
+## Structure
 
 The system is planned to be divided into well-defined layers:
 
