@@ -1,0 +1,1 @@
+AppBuilderCustom.CreateBuilder(args).UseWarmup().Run();
