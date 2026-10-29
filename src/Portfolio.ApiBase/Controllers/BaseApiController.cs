@@ -1,5 +1,17 @@
 namespace Portfolio.ApiBase.Controllers;
 
+
+[ApiController]
+public abstract class BaseApiController : ControllerBase
+{
+    protected IApplicationContextService AppContext { get; }
+
+    protected BaseApiController(IApplicationContextService applicationContextService) // NOSONAR
+    {
+        AppContext = applicationContextService ?? throw new ArgumentNullException(nameof(applicationContextService));
+    }
+}
+
 /// <summary>
 /// Base controller for all API endpoints, providing shared dependencies and standard response helpers.
 /// </summary>
@@ -8,17 +20,15 @@ namespace Portfolio.ApiBase.Controllers;
 /// injected <see cref="ILogger{TCategoryName}"/> has the correct category name for the derived controller, 
 /// improving structured logging context.
 /// </remarks>
-[ApiController]
-public abstract class BaseApiController<TController> : ControllerBase where TController : ControllerBase
+public class BaseApiController<TController> : BaseApiController where TController : BaseApiController
 {
     protected ILogger<TController> Logger { get; }
-    protected IApplicationContextService AppContext { get; }
 
     // SONAR ignores S6672
-    protected BaseApiController(ILogger<TController> logger, IApplicationContextService applicationContextService) // NOSONAR
+    protected BaseApiController(ILogger<TController> logger, IApplicationContextService applicationContextService) 
+        : base(applicationContextService) // NOSONAR
     {
         Logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        AppContext = applicationContextService ?? throw new ArgumentNullException(nameof(applicationContextService));
     }
 
     /// <summary>
