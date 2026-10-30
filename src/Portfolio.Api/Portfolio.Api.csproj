@@ -20,8 +20,8 @@
 
   <ItemGroup Label="Project References">
     <ProjectReference Include="..\..\src\Portfolio.ApiBase\Portfolio.ApiBase.csproj" />
-    <ProjectReference Include="..\..\src\Portfolio.ApiBase\Portfolio.Domain.csproj" />
-    <ProjectReference Include="..\..\src\Portfolio.ApiBase\Portfolio.DataAccess.csproj" />
+    <ProjectReference Include="..\..\src\Portfolio.Domain\Portfolio.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Portfolio.DataAccess\Portfolio.DataAccess.csproj" />
   </ItemGroup>
 
   <ItemGroup Label="Package References">
