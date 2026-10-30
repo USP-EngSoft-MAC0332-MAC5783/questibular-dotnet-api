@@ -76,7 +76,8 @@ public sealed class User : EntityMetadata
         string id, string email, string passwordHash, 
         IEnumerable<string> roles, bool twoFactorEnabled, string? twoFactorSecret, 
         IEnumerable<string> recoveryCodes, int accessFailedCount, DateTime? lockoutEnd, 
-        DateTime? lastLoginAt, DateTime createdAt)
+        DateTime? lastLoginAt, DateTime createdAt,
+        bool emailConfirmed, DateTime? twoFactorEnabledAt)
     {
         var user = new User
         {
@@ -88,7 +89,9 @@ public sealed class User : EntityMetadata
             AccessFailedCount = accessFailedCount,
             LockoutEnd = lockoutEnd,
             LastLoginAt = lastLoginAt,
-            CreatedAt = createdAt
+            CreatedAt = createdAt,
+            EmailConfirmed = emailConfirmed,
+            TwoFactorEnabledAt = twoFactorEnabledAt
         };
 
         user._roles.AddRange(roles);

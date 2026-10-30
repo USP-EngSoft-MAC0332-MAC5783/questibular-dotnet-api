@@ -14,6 +14,8 @@ public static class DataAccessExtensions
     public static IServiceCollection AddPostgresDataAccess(
         this IServiceCollection services, IConfiguration configuration)
     {
+        TypeAdapterConfig.GlobalSettings.Scan(typeof(DataAccessExtensions).Assembly);
+        
         // Build the connection string eagerly so a misconfigured environment
         // fails fast at startup — not on the first request that touches the DB.
         var connectionString = PostgresConnectionStringBuilder.Build(configuration);

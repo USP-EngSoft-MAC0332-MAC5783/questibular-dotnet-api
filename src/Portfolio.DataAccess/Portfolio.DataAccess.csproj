@@ -16,4 +16,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Portfolio.Domain\Portfolio.Domain.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Portfolio.DataAccess.Tests" />
+  </ItemGroup>
 </Project>
