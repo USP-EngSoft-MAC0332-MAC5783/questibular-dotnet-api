@@ -2,9 +2,12 @@
   <Folder Name="/src/">
     <Project Path="src/Portfolio.Api/Portfolio.Api.csproj" />
     <Project Path="src/Portfolio.ApiBase/Portfolio.ApiBase.csproj" />
+    <Project Path="src/Portfolio.Domain/Portfolio.Domain.csproj" />
+    <Project Path="src/Portfolio.DataAccess/Portfolio.DataAccess.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Portfolio.Api.Tests/Portfolio.Api.Tests.csproj" />
     <Project Path="tests/Portfolio.ApiBase.Tests/Portfolio.ApiBase.Tests.csproj" />
+    <Project Path="tests/Portfolio.Domain.Tests/Portfolio.Domain.Tests.csproj" />
   </Folder>
 </Solution>
