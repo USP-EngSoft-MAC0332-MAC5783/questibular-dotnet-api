@@ -5,7 +5,7 @@ namespace Portfolio.DataAccess.Postgres;
 /// Shared between the design-time factory (EF CLI) and the runtime DI registration
 /// to guarantee both use exactly the same rules.
 /// </summary>
-public static class PostgresConnectionStringBuilder
+internal static class PostgresConnectionStringBuilder
 {
     private const string UserEnvVar     = "POSTGRES_USER";
     private const string PasswordEnvVar = "POSTGRES_PASSWORD";

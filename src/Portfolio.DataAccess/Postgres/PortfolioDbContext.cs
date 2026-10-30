@@ -6,7 +6,7 @@ namespace Portfolio.DataAccess.Postgres;
 /// shared entity sets used across the data access layer.
 /// Entity mappings are discovered automatically.
 /// </summary>
-public class PortfolioDbContext : DbContext
+internal sealed class PortfolioDbContext : DbContext
 {
     // Shared Models References
     public DbSet<UserDbModel> Users => Set<UserDbModel>();

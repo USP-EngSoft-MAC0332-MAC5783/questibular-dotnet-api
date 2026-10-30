@@ -1,6 +1,6 @@
 namespace Portfolio.DataAccess.Models;
 
-public class UserDbModel
+internal sealed class UserDbModel
 {
     public string Id { get; set; } = default!;
     public string Email { get; set; } = default!;
@@ -9,6 +9,8 @@ public class UserDbModel
     public List<string> TwoFactorRecoveryCodes { get; set; } = new();
     public bool TwoFactorEnabled { get; set; }
     public string? TwoFactorSecret { get; set; }
+    public bool EmailConfirmed { get; set; }
+    public DateTime? TwoFactorEnabledAt { get; set; }
     public int AccessFailedCount { get; set; }
     public DateTime? LockoutEnd { get; set; }
     public DateTime? LastLoginAt { get; set; }

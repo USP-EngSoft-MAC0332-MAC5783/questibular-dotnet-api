@@ -1,6 +1,6 @@
 namespace Portfolio.DataAccess.Postgres.Configurations;
 
-public class RefreshTokenDbModelConfiguration : IEntityTypeConfiguration<RefreshTokenDbModel>
+internal sealed class RefreshTokenDbModelConfiguration : IEntityTypeConfiguration<RefreshTokenDbModel>
 {
     public void Configure(EntityTypeBuilder<RefreshTokenDbModel> builder)
     {

@@ -1,6 +1,6 @@
 namespace Portfolio.DataAccess.Models;
 
-public class RefreshTokenDbModel
+internal sealed class RefreshTokenDbModel
 {
     public string Id { get; set; } = default!;
     public string UserId { get; set; } = default!;

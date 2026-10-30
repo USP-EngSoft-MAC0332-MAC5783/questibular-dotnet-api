@@ -6,7 +6,7 @@ namespace Portfolio.DataAccess.Postgres;
 /// Delegates connection-string composition to <see cref="PostgresConnectionStringBuilder"/>
 /// so design-time and runtime always behave identically.
 /// </summary>
-public class PortfolioDbContextFactory : IDesignTimeDbContextFactory<PortfolioDbContext>
+internal sealed class PortfolioDbContextFactory : IDesignTimeDbContextFactory<PortfolioDbContext>
 {
     public PortfolioDbContext CreateDbContext(string[] args)
     {
