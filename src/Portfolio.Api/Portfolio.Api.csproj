@@ -20,6 +20,9 @@
 
   <ItemGroup Label="Project References">
     <ProjectReference Include="..\..\src\Portfolio.ApiBase\Portfolio.ApiBase.csproj" />
+    <ProjectReference Include="..\..\src\Portfolio.Domain\Portfolio.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Portfolio.DataAccess\Portfolio.DataAccess.csproj" />
+    <ProjectReference Include="..\Portfolio.Domain\Portfolio.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup Label="Package References">
@@ -27,7 +30,10 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="Asp.Versioning.Mvc" />
+    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
+    <PackageReference Include="Microsoft.Extensions.Localization" />
     <PackageReference Include="Otp.NET" />
     <PackageReference Include="QRCoder" />
   </ItemGroup>

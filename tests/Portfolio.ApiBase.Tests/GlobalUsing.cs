@@ -1,10 +1,13 @@
 global using FluentAssertions;
 global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.Extensions.Configuration;
-global using Microsoft.Extensions.Logging;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Logging.Abstractions;
 global using Moq;
 global using Portfolio.ApiBase.Caching;
 global using Portfolio.ApiBase.Configuration;
+global using Portfolio.ApiBase.Controllers;
 global using Portfolio.ApiBase.Services;
 global using System.Collections.Generic;
 global using System.Security.Claims;

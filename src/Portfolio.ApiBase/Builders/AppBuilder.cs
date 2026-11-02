@@ -163,6 +163,12 @@ public abstract partial class AppBuilder<TBuilder> where TBuilder: AppBuilder<TB
         return (TBuilder)this;
     }
 
+    public static bool IsDevelopment()
+    {
+        return Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "dev" 
+            || Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
+    }
+
     /// <summary>
     /// Builds and configures the WebApplication pipeline.
     /// </summary>

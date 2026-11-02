@@ -12,12 +12,18 @@ services:
       - .env
     environment:
       ASPNETCORE_URLS: https://+:5001;http://+:5000
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /app/${HTTPS_CERTIFICATE_PEM_PATH}
+      ASPNETCORE_Kestrel__Certificates__Default__KeyPath: /app/${HTTPS_CERTIFICATE_KEY_PATH}
+      HTTPS_CERTIFICATE_PEM_PATH: /app/${HTTPS_CERTIFICATE_PEM_PATH}
+      HTTPS_CERTIFICATE_KEY_PATH: /app/${HTTPS_CERTIFICATE_KEY_PATH}
+      HTTPS_SSL_PROTOCOLS: ${HTTPS_SSL_PROTOCOLS}
+      HTTPS_CLIENT_CERT_MODE: ${HTTPS_CLIENT_CERT_MODE}
+
       AWS_DEFAULT_REGION: us-east-1
       Aws__ServiceUrl: http://ministack:4566
       Jwt__Secret: ${JWT_SECRET}
       Jwt__Issuer: ${JWT_ISSUER}
       Jwt__Audience: ${JWT_AUDIENCE}
-      ConnectionStrings__PostgresConnection: Host=postgres;Database=portfolio;Username=admin;Password=admin
     volumes:
       - ~/.aws:/root/.aws:ro
       - ./certs:/app/certs:ro
