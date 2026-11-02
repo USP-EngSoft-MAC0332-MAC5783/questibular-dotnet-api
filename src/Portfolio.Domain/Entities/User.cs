@@ -6,6 +6,7 @@ namespace Portfolio.Domain.Entities;
 public sealed class User : EntityMetadata
 {
     public string Email { get; private set; } = default!;
+    public string Name { get; private set; } = default!;
     public string PasswordHash { get; private set; } = default!;
 
     private readonly List<string> _roles = [];
@@ -35,23 +36,26 @@ public sealed class User : EntityMetadata
     /// Applies default business rules, such as generating a unique identifier, setting the creation date, and assigning the default "User" role.
     /// </summary>
     /// <param name="email">The user's email address. Must not be null or whitespace.</param>
+    /// <param name="name">The user's full name.</param>
     /// <param name="passwordHash">The securely hashed representation of the user's password.</param>
     /// <param name="now">The current UTC date and time, used to set the creation timestamp.</param>
     /// <returns>A newly created <see cref="User"/> instance.</returns>
     /// <exception cref="ArgumentException">Thrown when the provided email is null, empty, or consists only of white-space characters.</exception>
-    public static User Create(string email, string passwordHash, DateTime now)
+    public static User Create(string email, string name, string passwordHash, UserRole role, DateTime now)
     {
         if (string.IsNullOrWhiteSpace(email)) throw new ArgumentException("Email inválido.");
-        
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Nome inválido.");
+
         User user = new()
         {
             Id = Guid.NewGuid().ToString("N"),
             Email = email,
+            Name = name,
             PasswordHash = passwordHash,
             CreatedAt = now
         };
 
-        user._roles.Add("User");
+        user._roles.Add(role.ToString().ToLowerInvariant());
         return user;
     }
 
@@ -62,6 +66,7 @@ public sealed class User : EntityMetadata
     /// </summary>
     /// <param name="id">The unique identifier of the user.</param>
     /// <param name="email">The user's email address.</param>
+    /// <param name="name">The user's full name.</param>
     /// <param name="passwordHash">The securely hashed representation of the user's password.</param>
     /// <param name="roles">The collection of roles assigned to the user.</param>
     /// <param name="twoFactorEnabled">Indicates whether Two-Factor Authentication is currently active.</param>
@@ -73,7 +78,7 @@ public sealed class User : EntityMetadata
     /// <param name="createdAt">The UTC date and time when the user was originally created.</param>
     /// <returns>The fully reconstituted <see cref="User"/> entity.</returns>
     public static User Reconstitute(
-        string id, string email, string passwordHash, 
+        string id, string email, string name, string passwordHash, 
         IEnumerable<string> roles, bool twoFactorEnabled, string? twoFactorSecret, 
         IEnumerable<string> recoveryCodes, int accessFailedCount, DateTime? lockoutEnd, 
         DateTime? lastLoginAt, DateTime createdAt,
@@ -83,6 +88,7 @@ public sealed class User : EntityMetadata
         {
             Id = id,
             Email = email,
+            Name = name,
             PasswordHash = passwordHash,
             TwoFactorEnabled = twoFactorEnabled,
             TwoFactorSecret = twoFactorSecret,
