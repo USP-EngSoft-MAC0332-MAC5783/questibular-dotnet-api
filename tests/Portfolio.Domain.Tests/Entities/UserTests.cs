@@ -5,24 +5,26 @@ public class UserTests
     [Fact]
     public void Create_Should_Throw_When_Email_Is_Empty()
     {
-        var act = () => User.Create("", "passwordHash", DateTime.UtcNow);
+        var act = () => User.Create("", "Test User", "passwordHash", UserRole.Student, DateTime.UtcNow);
+        
         act.Should().Throw<ArgumentException>().WithMessage("*Email*");
     }
 
     [Fact]
     public void Create_Should_Return_Valid_User_With_Default_Role()
     {
-        var user = User.Create("test@test.com", "hash", DateTime.UtcNow);
+        var user = User.Create("test@test.com", "Test User", "hash", UserRole.Student, DateTime.UtcNow);
 
         user.Id.Should().NotBeNullOrEmpty();
         user.Email.Should().Be("test@test.com");
-        user.Roles.Should().ContainSingle().Which.Should().Be("User");
+        user.Name.Should().Be("Test User");
+        user.Roles.Should().ContainSingle().Which.Should().Be("student");
     }
 
     [Fact]
     public void RegisterFailedAccess_Should_Lock_User_When_Threshold_Is_Reached()
     {
-        var user = User.Create("test@test.com", "hash", DateTime.UtcNow);
+        var user = User.Create("test@test.com", "Test User", "hash", UserRole.Student, DateTime.UtcNow);
         var now = DateTime.UtcNow;
 
         user.RegisterFailedAccess(2, TimeSpan.FromMinutes(5), now);
@@ -37,7 +39,7 @@ public class UserTests
     [Fact]
     public void RegisterSuccessfulLogin_Should_Reset_Counters_And_Set_LastLogin()
     {
-        var user = User.Create("test@test.com", "hash", DateTime.UtcNow);
+        var user = User.Create("test@test.com", "Test User", "hash", UserRole.Student, DateTime.UtcNow);
         var now = DateTime.UtcNow;
         
         user.RegisterFailedAccess(2, TimeSpan.FromMinutes(5), now);
@@ -53,7 +55,7 @@ public class UserTests
     [Fact]
     public void TwoFactor_Workflow_Should_Work_Correctly()
     {
-        var user = User.Create("test@test.com", "hash", DateTime.UtcNow);
+        var user = User.Create("test@test.com", "Test User", "hash", UserRole.Student, DateTime.UtcNow);
         var now = DateTime.UtcNow;
 
         // Setup
@@ -82,7 +84,7 @@ public class UserTests
     [Fact]
     public void SetupTwoFactor_Should_Throw_If_Already_Enabled()
     {
-        var user = User.Create("test@test.com", "hash", DateTime.UtcNow);
+        var user = User.Create("test@test.com", "Test User", "hash", UserRole.Student, DateTime.UtcNow);
         user.EnableTwoFactor(new List<string>(), DateTime.UtcNow);
 
         var act = () => user.SetupTwoFactor("secret");

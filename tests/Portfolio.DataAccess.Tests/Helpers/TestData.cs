@@ -7,10 +7,12 @@ namespace Portfolio.DataAccess.Tests.Helpers;
 /// </summary>
 internal static class TestData
 {
-    public static User CreateUser(string? email = null, DateTime? now = null)
+    public static User CreateUser(string? email = null, string? name = null, UserRole? role = null, DateTime? now = null)
         => User.Create(
             email ?? $"user-{Guid.NewGuid():N}@example.com",
+            name ?? "Test User",
             passwordHash: "$2a$11$not-a-real-hash",
+            role ?? UserRole.Student,
             now: now ?? DateTime.UtcNow);
 
     public static RefreshToken CreateRefreshToken(

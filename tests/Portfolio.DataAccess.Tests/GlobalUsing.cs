@@ -7,6 +7,7 @@ global using Portfolio.DataAccess.Postgres.Repositories;
 global using Portfolio.DataAccess.Tests.Fixtures;
 global using Portfolio.DataAccess.Tests.Helpers;
 global using Portfolio.Domain.Entities;
+global using Portfolio.Domain.Enums;
 global using System;
 global using System.Threading;
 global using System.Threading.Tasks;
