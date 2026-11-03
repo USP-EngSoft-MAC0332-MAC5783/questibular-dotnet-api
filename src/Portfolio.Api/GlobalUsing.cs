@@ -5,10 +5,12 @@ global using Asp.Versioning;
 
 global using Microsoft.AspNetCore.Authentication.JwtBearer;
 global using Microsoft.AspNetCore.Authorization;
+global using Microsoft.AspNetCore.DataProtection;
 global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.Extensions.Options;
 global using Microsoft.IdentityModel.Tokens;
 
+global using OtpNet;
 
 global using Portfolio.Api;
 global using Portfolio.Api.Composition.Extensions;
@@ -21,6 +23,7 @@ global using Portfolio.Api.Infrastructure;
 global using Portfolio.Api.Infrastructure.Events;
 global using Portfolio.Api.Infrastructure.Security;
 global using Portfolio.ApiBase.Builders;
+global using Portfolio.ApiBase.Controllers;
 global using Portfolio.ApiBase.Services;
 global using Portfolio.DataAccess.Extensions;
 global using Portfolio.DataAccess.Mapping;

@@ -16,6 +16,8 @@ public static class SecurityAdaptersExtensions
 
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IPasswordHasher, AspNetPasswordHasher>();
+        services.AddSingleton<ISecretProtector, DataProtectionSecretProtector>();
+        services.AddSingleton<ITotpProvider, OtpNetTotpProvider>();
         services.AddSingleton<ITokenGenerator, JwtTokenGenerator>();
 
         return services;

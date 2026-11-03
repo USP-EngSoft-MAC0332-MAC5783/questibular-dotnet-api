@@ -53,6 +53,7 @@ public class AppBuilderCustom : AppBuilder<AppBuilderCustom>
 
         ConfigureJwtAuthentication();
 
+        _builder.Services.AddHttpContextAccessor();
         _builder.Services.AddScoped<IApplicationContextService, ApplicationContextService>();
 
         UseWarmup();
