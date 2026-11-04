@@ -1,0 +1,141 @@
+name: API .NET CI
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*' # Dispara o pipeline de release quando uma tag (ex: v1.0.0) for criada
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.editorconfig'
+      - '.gitignore'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: '10.0.x'
+
+permissions:
+  contents: write # Required to create the Release
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # JOB 1 — Build & Tests
+  # ─────────────────────────────────────────────────────────────
+  build-and-test:
+    name: Build & Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: Restore
+        run: dotnet restore Portfolio.slnx
+
+      - name: Build
+        run: dotnet build Portfolio.slnx --no-restore -c Release
+
+      - name: Unit Tests with coverage
+        run: |
+          dotnet test Portfolio.slnx \
+            -c Release --no-build \
+            --logger "trx;LogFileName=results.trx" \
+            --results-directory ./TestResults \
+            /p:CollectCoverage=true \
+            /p:CoverletOutputFormat=opencover \
+            /p:CoverletOutput=./TestResults/coverage.opencover.xml
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ./TestResults
+          retention-days: 7
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 2 — Package & Release (Runs only when a v* tag is created)
+  # ─────────────────────────────────────────────────────────────
+  package-and-release:
+    name: Package & Release
+    needs: build-and-test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      # 1. Extract version from Tag (e.g., 'v1.1.0' becomes '1.1.0')
+      - name: Extract Version from Tag
+        id: get_version
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Restore
+        run: |
+          dotnet restore src/Portfolio.Api/Portfolio.Api.csproj \
+            -p:Configuration=Release
+
+      # 2. Publish the API applying the version extracted from the Tag
+      - name: Publish
+        run: |
+          dotnet publish src/Portfolio.Api/Portfolio.Api.csproj \
+            -c Release \
+            -o ./publish \
+            --no-restore \
+            -p:Version=${{ steps.get_version.outputs.VERSION }}
+
+      # 3. Create the distribution package
+      - name: Create Artifact
+        run: |
+          cd publish
+          tar -czf ../api-v${{ steps.get_version.outputs.VERSION }}.tar.gz .
+          cd ..
+          sha256sum api-v${{ steps.get_version.outputs.VERSION }}.tar.gz > api-v${{ steps.get_version.outputs.VERSION }}.tar.gz.sha256
+
+      # 4. Create the Release on GitHub
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            api-v${{ steps.get_version.outputs.VERSION }}.tar.gz
+            api-v${{ steps.get_version.outputs.VERSION }}.tar.gz.sha256
