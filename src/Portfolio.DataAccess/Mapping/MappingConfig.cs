@@ -31,4 +31,12 @@ public static class MappingConfig
                 src.RevokedByIp, src.CreatedAt
             ));
     }
+
+    /// <summary>
+    /// Automatically runs when the assembly of the project is loaded,
+    /// guaranteeing that Mapster is configured in any process
+    /// (API, tests, CLI tools, CI jobs).
+    /// </summary>
+    [ModuleInitializer]
+    internal static void Initialize() => RegisterMappings();
 }
