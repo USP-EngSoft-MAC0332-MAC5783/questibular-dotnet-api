@@ -2,43 +2,105 @@ namespace Portfolio.ApiBase.Tests.Services;
 
 public class ApplicationContextServiceTests
 {
-    private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
-    private readonly ApplicationContextService _sut;
+    private readonly HttpContextAccessor _accessor;
+    private readonly ApplicationContextService _service;
 
     public ApplicationContextServiceTests()
     {
-        _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
-        _sut = new ApplicationContextService(_httpContextAccessorMock.Object);
+        _accessor = new HttpContextAccessor();
+        _service = new ApplicationContextService(_accessor);
     }
 
     [Fact]
-    public void CurrentUserId_ShouldReturnClaim_WhenUserIsAuthenticated()
+    public void SetValue_And_GetValue_Should_Work()
     {
         // Arrange
-        var claims = new[] { new Claim(ClaimTypes.NameIdentifier, "user_123") };
+        var key = "MyKey";
+        var value = "MyValue";
+
+        // Act
+        _service.SetValue(key, value);
+        var result = _service.GetValue<string>(key);
+
+        // Assert
+        result.Should().Be(value);
+    }
+
+    [Fact]
+    public void GetValue_Should_Throw_KeyNotFoundException_When_Key_Missing()
+    {
+        // Act
+        var act = () => _service.GetValue<string>("MissingKey");
+
+        // Assert
+        act.Should().Throw<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public void TryGetValue_Should_Return_True_And_Value_When_Exists()
+    {
+        // Arrange
+        _service.SetValue("Age", 25);
+
+        // Act
+        var found = _service.TryGetValue<int>("Age", out var result);
+
+        // Assert
+        found.Should().BeTrue();
+        result.Should().Be(25);
+    }
+
+    [Fact]
+    public void TryGetValue_Should_Return_False_When_Key_Does_Not_Exist()
+    {
+        // Act
+        var found = _service.TryGetValue<string>("Missing", out var result);
+
+        // Assert
+        found.Should().BeFalse();
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void CurrentUserId_Should_Return_Claim_Value_When_Authenticated()
+    {
+        // Arrange
+        var claims = new[] { new Claim(ClaimTypes.NameIdentifier, "user-123") };
         var identity = new ClaimsIdentity(claims, "TestAuth");
-        var claimsPrincipal = new ClaimsPrincipal(identity);
-        
-        var httpContext = new DefaultHttpContext { User = claimsPrincipal };
-        _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext);
+        var context = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+        _accessor.HttpContext = context;
 
         // Act
-        var result = _sut.CurrentUserId;
+        var userId = _service.CurrentUserId;
 
         // Assert
-        result.Should().Be("user_123");
+        userId.Should().Be("user-123");
     }
 
     [Fact]
-    public void CurrentUserId_ShouldThrow_WhenUserIsNotAuthenticated()
+    public void CurrentUserId_Should_Throw_When_Not_Authenticated()
     {
         // Arrange
-        _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(new DefaultHttpContext());
+        _accessor.HttpContext = new DefaultHttpContext();
 
         // Act
-        var action = () => _sut.CurrentUserId;
+        var act = () => _service.CurrentUserId;
 
         // Assert
-        action.Should().Throw<InvalidOperationException>();
+        act.Should().Throw<InvalidOperationException>().WithMessage("*User is not authenticated*");
+    }
+
+    [Fact]
+    public void RequestId_Should_Return_TraceIdentifier()
+    {
+        // Arrange
+        var context = new DefaultHttpContext { TraceIdentifier = "trace-999" };
+        _accessor.HttpContext = context;
+
+        // Act
+        var requestId = _service.RequestId;
+
+        // Assert
+        requestId.Should().Be("trace-999");
     }
 }

@@ -60,7 +60,6 @@ certs/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
-<<<<<<< HEAD
 
 **/.sonarqube/
 **/.scannerwork/
@@ -68,6 +67,3 @@ nunit-*.xml
 **/publish/
 **/certs/
 
-coverage.opencover.xml
-=======
->>>>>>> d28da2f (infra(#77): adding certs coverage-results and sonarqube to gitignore)
