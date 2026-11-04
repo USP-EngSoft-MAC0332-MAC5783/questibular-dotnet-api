@@ -25,7 +25,6 @@ public class AppBuilderCustom : AppBuilder<AppBuilderCustom>
         ConfigureKestrel();
 
         // ── 2. Swagger ──────────── 
-        ConfigureSwagger();
         _builder.Services.AddApiVersioning(options =>
         {
             options.DefaultApiVersion = new ApiVersion(1, 0);
@@ -37,6 +36,11 @@ public class AppBuilderCustom : AppBuilder<AppBuilderCustom>
             options.GroupNameFormat = "'v'VVV"; 
             options.SubstituteApiVersionInUrl = true;
         });
+
+        if (isDevelopment)
+        {
+            ConfigureSwagger();
+        }
 
         // ── 3. Database (Hexagonal Adapter) ────────────
         _builder.Services.AddPostgresDataAccess(config);
