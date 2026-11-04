@@ -11,7 +11,7 @@ public abstract partial class AppBuilder<TBuilder> where TBuilder: AppBuilder<TB
     protected readonly ILogger _logger;
     private bool _useHttpsRedirection = true;
     private bool _useCors = false;
-    private bool _useSwagger = true;
+    private bool _useSwagger = false;
     private bool _useAuthentication = false;
     private bool _useAuthorization = false;
     protected Action<SwaggerUIOptions>? _swaggerUiCustomization;
