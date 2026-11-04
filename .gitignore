@@ -43,7 +43,11 @@ ScaffoldingReadMe.txt
 ~$*
 *~
 CodeCoverage/
-coverage.*
+
+coverage.opencover.xml
+coverage-results/
+.sonarqube
+certs/
 
 # MSBuild Binary and Structured Log
 *.binlog
@@ -56,6 +60,7 @@ coverage.*
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+<<<<<<< HEAD
 
 **/.sonarqube/
 **/.scannerwork/
@@ -64,3 +69,5 @@ nunit-*.xml
 **/certs/
 
 coverage.opencover.xml
+=======
+>>>>>>> d28da2f (infra(#77): adding certs coverage-results and sonarqube to gitignore)
