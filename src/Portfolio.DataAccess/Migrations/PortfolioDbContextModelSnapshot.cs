@@ -22,6 +22,76 @@ namespace Portfolio.DataAccess.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Portfolio.DataAccess.Models.ExamDbModel", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.PrimitiveCollection<string>("Disciplines")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("FinishCount")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsSynced")
+                        .HasColumnType("boolean");
+
+                    b.PrimitiveCollection<string>("Languages")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("LastFinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("QuestionCountHumanities")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuestionCountLanguages")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuestionCountMath")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuestionCountNature")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("StartCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("TotalQuestionsFinished")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Year")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("character varying(4)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsSynced");
+
+                    b.HasIndex("Year")
+                        .IsUnique();
+
+                    b.ToTable("Exams", (string)null);
+                });
+
             modelBuilder.Entity("Portfolio.DataAccess.Models.RefreshTokenDbModel", b =>
                 {
                     b.Property<string>("Id")

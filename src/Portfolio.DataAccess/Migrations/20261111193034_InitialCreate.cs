@@ -12,11 +12,39 @@ namespace Portfolio.DataAccess.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "Exams",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
+                    Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    Year = table.Column<string>(type: "character varying(4)", maxLength: 4, nullable: false),
+                    QuestionCountHumanities = table.Column<int>(type: "integer", nullable: false),
+                    QuestionCountNature = table.Column<int>(type: "integer", nullable: false),
+                    QuestionCountLanguages = table.Column<int>(type: "integer", nullable: false),
+                    QuestionCountMath = table.Column<int>(type: "integer", nullable: false),
+                    IsSynced = table.Column<bool>(type: "boolean", nullable: false),
+                    StartCount = table.Column<int>(type: "integer", nullable: false),
+                    FinishCount = table.Column<int>(type: "integer", nullable: false),
+                    TotalQuestionsFinished = table.Column<int>(type: "integer", nullable: false),
+                    LastStartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastFinishedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Languages = table.Column<string>(type: "jsonb", nullable: false),
+                    Disciplines = table.Column<string>(type: "jsonb", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Exams", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
                     Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
                     PasswordHash = table.Column<string>(type: "text", nullable: false),
                     Roles = table.Column<string>(type: "jsonb", nullable: false),
                     TwoFactorRecoveryCodes = table.Column<string>(type: "jsonb", nullable: false),
@@ -60,6 +88,17 @@ namespace Portfolio.DataAccess.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Exams_IsSynced",
+                table: "Exams",
+                column: "IsSynced");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Exams_Year",
+                table: "Exams",
+                column: "Year",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_RefreshTokens_TokenHash",
                 table: "RefreshTokens",
                 column: "TokenHash",
@@ -80,6 +119,9 @@ namespace Portfolio.DataAccess.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "Exams");
+
             migrationBuilder.DropTable(
                 name: "RefreshTokens");
 
