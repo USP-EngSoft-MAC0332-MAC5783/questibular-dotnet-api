@@ -9,8 +9,9 @@ namespace Portfolio.DataAccess.Postgres;
 internal sealed class PortfolioDbContext : DbContext
 {
     // Shared Models References
-    public DbSet<UserDbModel> Users => Set<UserDbModel>();
+    public DbSet<UserDbModel> Users                 => Set<UserDbModel>();
     public DbSet<RefreshTokenDbModel> RefreshTokens => Set<RefreshTokenDbModel>();
+    public DbSet<ExamDbModel> Exams                 => Set<ExamDbModel>();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PortfolioDbContext"/> class
