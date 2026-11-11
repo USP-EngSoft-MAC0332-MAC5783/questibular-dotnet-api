@@ -27,6 +27,8 @@ public static class DataAccessExtensions
         services.AddScoped<IUserRepository, PostgresUserRepository>();
         services.AddScoped<IRefreshTokenRepository, PostgresRefreshTokenRepository>();
 
+        services.AddScoped<IExamRepository, PostgresExamRepository>();
+
         return services;
     }
 }

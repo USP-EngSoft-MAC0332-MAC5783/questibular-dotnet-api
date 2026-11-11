@@ -30,6 +30,27 @@ public static class MappingConfig
                 src.RevokedAt, src.ReplacedByTokenHash, src.CreatedByIp,
                 src.RevokedByIp, src.CreatedAt
             ));
+
+        // ── EXAM ───────────────────────────────────────────────────────
+        TypeAdapterConfig<ExamDbModel, Exam>.NewConfig()
+            .MapWith(src => Exam.Reconstitute(
+                src.Id, 
+                src.Title, 
+                src.Year, 
+                src.QuestionCountHumanities, 
+                src.QuestionCountNature, 
+                src.QuestionCountLanguages, 
+                src.QuestionCountMath,
+                src.Disciplines, 
+                src.Languages,
+                src.IsSynced, 
+                src.StartCount, 
+                src.FinishCount, 
+                src.TotalQuestionsFinished,
+                src.LastStartedAt, 
+                src.LastFinishedAt, 
+                src.CreatedAt
+            ));
     }
 
     /// <summary>
