@@ -20,14 +20,19 @@ public static class DataAccessExtensions
         // fails fast at startup — not on the first request that touches the DB.
         var connectionString = PostgresConnectionStringBuilder.Build(configuration);
 
+        var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+        dataSourceBuilder.EnableDynamicJson();
+        var dataSource = dataSourceBuilder.Build();
+
         services.AddDbContext<PortfolioDbContext>(options =>
-            options.UseNpgsql(connectionString));
+            options.UseNpgsql(dataSource));
 
         // Postgres takes ownership of the Domain repository contracts.
         services.AddScoped<IUserRepository, PostgresUserRepository>();
         services.AddScoped<IRefreshTokenRepository, PostgresRefreshTokenRepository>();
 
         services.AddScoped<IExamRepository, PostgresExamRepository>();
+        services.AddScoped<IExamAttemptRepository, PostgresExamAttemptRepository>();
 
         return services;
     }

@@ -12,6 +12,7 @@ internal sealed class PortfolioDbContext : DbContext
     public DbSet<UserDbModel> Users                 => Set<UserDbModel>();
     public DbSet<RefreshTokenDbModel> RefreshTokens => Set<RefreshTokenDbModel>();
     public DbSet<ExamDbModel> Exams                 => Set<ExamDbModel>();
+    public DbSet<ExamAttemptDbModel> ExamAttempts   => Set<ExamAttemptDbModel>();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PortfolioDbContext"/> class

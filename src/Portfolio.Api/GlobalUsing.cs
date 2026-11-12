@@ -3,6 +3,8 @@ global using AspNetResult = Microsoft.AspNetCore.Identity.PasswordVerificationRe
 
 global using Asp.Versioning;
 
+global using System.Globalization;
+
 global using Microsoft.AspNetCore.Authentication.JwtBearer;
 global using Microsoft.AspNetCore.Authorization;
 global using Microsoft.AspNetCore.DataProtection;

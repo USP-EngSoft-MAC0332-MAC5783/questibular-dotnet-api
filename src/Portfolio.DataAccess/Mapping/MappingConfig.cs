@@ -51,6 +51,46 @@ public static class MappingConfig
                 src.LastFinishedAt, 
                 src.CreatedAt
             ));
+
+        // Exam Attempt
+        TypeAdapterConfig<ExamAttemptDbModel, ExamAttempt>.NewConfig()
+            .MapWith(src => ExamAttempt.Reconstitute(
+                src.Id, 
+                src.ExamId, 
+                src.UserId, 
+                src.IsAnonymous,
+                src.AnonymousToken,
+                src.StartedAt,
+                src.PlannedFinishAt,
+                src.FinishedAt,
+                src.ExpiresAt,
+                src.TimeInMinutes,
+                src.QuestionCount,
+                src.SelectedLanguage,
+                src.IncludeHumanities,
+                src.IncludeNature,
+                src.IncludeLanguages,
+                src.IncludeMath,
+                src.ServedQuestions.Select(q => new AttemptQuestion(q.Index, q.Discipline, q.Language)).ToList(),
+                src.Answers.Select(a => QuestionAnswer.Create(a.Index, a.CorrectAlternative, a.SelectedAlternative)).ToList(),
+                src.CreatedAt
+            ));
+
+        TypeAdapterConfig<Exam, ExamDbModel>.NewConfig()
+            .Map(dest => dest.Disciplines, src => src.Disciplines.ToList())
+            .Map(dest => dest.Languages, src => src.Languages.ToList());
+
+        TypeAdapterConfig<ExamAttempt, ExamAttemptDbModel>.NewConfig()
+            .Map(dest => dest.ServedQuestions, src => src.ServedQuestions.Select(q => new AttemptQuestionDbModel { 
+                Index = q.Index, 
+                Discipline = q.Discipline, 
+                Language = q.Language 
+            }).ToList())
+            .Map(dest => dest.Answers, src => src.Answers.Select(a => new QuestionAnswerDbModel { 
+                Index = a.Index, 
+                CorrectAlternative = a.CorrectAlternative, 
+                SelectedAlternative = a.SelectedAlternative 
+            }).ToList());
     }
 
     /// <summary>
