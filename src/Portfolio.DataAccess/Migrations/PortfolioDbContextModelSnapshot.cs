@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+
 using Portfolio.DataAccess.Postgres;
 
 #nullable disable
@@ -21,76 +22,6 @@ namespace Portfolio.DataAccess.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("Portfolio.DataAccess.Models.ExamDbModel", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.PrimitiveCollection<string>("Disciplines")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.Property<int>("FinishCount")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("IsSynced")
-                        .HasColumnType("boolean");
-
-                    b.PrimitiveCollection<string>("Languages")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
-
-                    b.Property<DateTime?>("LastFinishedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("LastStartedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("QuestionCountHumanities")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("QuestionCountLanguages")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("QuestionCountMath")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("QuestionCountNature")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("StartCount")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<int>("TotalQuestionsFinished")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Year")
-                        .IsRequired()
-                        .HasMaxLength(4)
-                        .HasColumnType("character varying(4)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IsSynced");
-
-                    b.HasIndex("Year")
-                        .IsUnique();
-
-                    b.ToTable("Exams", (string)null);
-                });
 
             modelBuilder.Entity("Portfolio.DataAccess.Models.RefreshTokenDbModel", b =>
                 {
@@ -201,6 +132,223 @@ namespace Portfolio.DataAccess.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Portfolio.DataAccess.Models.ExamDbModel", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.PrimitiveCollection<string>("Disciplines")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("FinishCount")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsSynced")
+                        .HasColumnType("boolean");
+
+                    b.PrimitiveCollection<string>("Languages")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("LastFinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("QuestionCountHumanities")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuestionCountLanguages")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuestionCountMath")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuestionCountNature")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("StartCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("TotalQuestionsFinished")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Year")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("character varying(4)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsSynced");
+
+                    b.HasIndex("Year")
+                        .IsUnique();
+
+                    b.ToTable("Exams", (string)null);
+                });
+
+            modelBuilder.Entity("Portfolio.DataAccess.Models.ExamAttemptDbModel", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("AnonymousToken")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<List<QuestionAnswerDbModel>>("Answers")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ExamId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IncludeHumanities")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IncludeLanguages")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IncludeMath")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IncludeNature")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsAnonymous")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("PlannedFinishAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("QuestionCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SelectedLanguage")
+                        .HasColumnType("text");
+
+                    b.Property<List<AttemptQuestionDbModel>>("ServedQuestions")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("TimeInMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExamId");
+
+                    b.HasIndex("IsAnonymous", "ExpiresAt");
+
+                    b.ToTable("ExamAttempts", (string)null);
+                });
+
+            modelBuilder.Entity("Portfolio.DataAccess.Models.ExamDbModel", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.PrimitiveCollection<string>("Disciplines")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("FinishCount")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsSynced")
+                        .HasColumnType("boolean");
+
+                    b.PrimitiveCollection<string>("Languages")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("LastFinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("QuestionCountHumanities")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuestionCountLanguages")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuestionCountMath")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuestionCountNature")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("StartCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("TotalQuestionsFinished")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Year")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("character varying(4)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsSynced");
+
+                    b.HasIndex("Year")
+                        .IsUnique();
+
+                    b.ToTable("Exams", (string)null);
                 });
 #pragma warning restore 612, 618
         }

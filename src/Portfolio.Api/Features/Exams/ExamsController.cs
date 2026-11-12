@@ -43,8 +43,90 @@ public sealed class ExamsController : BaseApiController<ExamsController>
         }
     }
 
-    // ===================== Helpers =====================
+    // ===================== US10 — POST /api/v1/exams/start =====================
+    [HttpPost("start")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(StartExamResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<StartExamResponse>> StartExam(
+        [FromBody] StartExamRequest request,
+        CancellationToken ct)
+    {
+        var userId = GetAuthenticatedUserId();
+        try
+        {
+            var result = await _examFacade.StartExamAsync(request, userId, ct);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(BuildProblem("Acesso negado", ex.Message, 401));
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            return BadRequest(BuildProblem("Falha ao iniciar simulado", ex.Message, 400));
+        }
+    }
 
+    // ===================== US10 — POST /api/v1/exams/finish =====================
+    [HttpPost("finish")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(FinishExamResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<FinishExamResponse>> FinishExam(
+        [FromBody] FinishExamRequest request,
+        CancellationToken ct)
+    {
+        var userId = GetAuthenticatedUserId();
+        try
+        {
+            var result = await _examFacade.FinishExamAsync(request, userId, ct);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(BuildProblem("Acesso negado", ex.Message, 401));
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            return BadRequest(BuildProblem("Falha ao finalizar simulado", ex.Message, 400));
+        }
+    }
+
+    // ===================== US10 — GET /api/v1/exams/report/{id} =====================
+    [HttpGet("report/{id}")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(FinishExamResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<FinishExamResponse>> GetReport(
+        string id,
+        CancellationToken ct)
+    {
+        var userId = GetAuthenticatedUserId();
+        try
+        {
+            var result = await _examFacade.GetReportAsync(id, userId, ct);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(BuildProblem("Acesso negado", ex.Message, 401));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(BuildProblem("Falha ao obter relatório", ex.Message, 400));
+        }
+    }
+
+    // ===================== Helpers =====================
+    private string? GetAuthenticatedUserId()
+        => User.Identity?.IsAuthenticated == true
+            ? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            : null;
+            
     private static ProblemDetails BuildProblem(string title, string detail, int status)
         => new()
         {

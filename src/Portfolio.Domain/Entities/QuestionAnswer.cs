@@ -19,7 +19,7 @@ public sealed class QuestionAnswer
         if (string.IsNullOrWhiteSpace(selectedAlternative))
             throw new ArgumentException("Alternativa selecionada inválida.", nameof(selectedAlternative));
 
-        return new QuestionAnswer
+        return new()
         {
             Index               = index,
             CorrectAlternative  = correctAlternative.Trim().ToUpperInvariant(),
