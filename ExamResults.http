@@ -1,0 +1,24 @@
+@baseUrl = http://localhost:5000
+@token = YOUR_JWT_TOKEN
+@resultId = 00000000-0000-0000-0000-000000000001
+@studentId = 00000000-0000-0000-0000-000000000002
+
+### Get all of a student's results, each with a paginated question set
+GET {{baseUrl}}/api/v1/exams/result/student/{{studentId}}?limit=20&offset=0
+Authorization: Bearer {{token}}
+
+### Get a result with a page of questions
+GET {{baseUrl}}/api/v1/exams/result/{{resultId}}?limit=20&offset=0
+Authorization: Bearer {{token}}
+
+### Link a student to the authenticated teacher (teacher token required)
+POST {{baseUrl}}/api/v1/teachers/students/{{studentId}}
+Authorization: Bearer {{token}}
+
+### Invalid result identifier
+GET {{baseUrl}}/api/v1/exams/result/not-a-guid
+Authorization: Bearer {{token}}
+
+### Invalid pagination limit
+GET {{baseUrl}}/api/v1/exams/result/{{resultId}}?limit=0&offset=0
+Authorization: Bearer {{token}}

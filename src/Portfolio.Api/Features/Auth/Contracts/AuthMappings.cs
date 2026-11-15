@@ -22,7 +22,11 @@ public static class AuthMappings
         var id = user.FindFirst("sub")?.Value ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var email = user.FindFirst("email")?.Value;
         var name = user.FindFirst("name")?.Value;
-        var roles = user.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
+        var roles = user.FindAll("role")
+            .Concat(user.FindAll(ClaimTypes.Role))
+            .Select(c => c.Value)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
 
         return new UserResponse(
             id ?? string.Empty,

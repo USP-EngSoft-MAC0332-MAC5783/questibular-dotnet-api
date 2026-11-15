@@ -23,6 +23,8 @@ global using Portfolio.Api.Features.Exams;
 global using Portfolio.Api.Features.Exams.Contracts;
 global using Portfolio.Api.Features.Users;
 global using Portfolio.Api.Features.Users.Contracts;
+global using Portfolio.Api.Features.ExamResults;
+global using Portfolio.Api.Features.ExamResults.Contracts;
 global using Portfolio.Api.Infrastructure;
 global using Portfolio.Api.Infrastructure.EnemApi;
 global using Portfolio.Api.Infrastructure.Events;
@@ -41,6 +43,7 @@ global using Portfolio.Domain.Events;
 global using Portfolio.Domain.Events.AuthEvents;
 global using Portfolio.Domain.Notifications;
 global using Portfolio.Domain.Repositories;
+global using Portfolio.Domain.ReadModels;
 global using Portfolio.Domain.Security;
 
 global using System.ComponentModel.DataAnnotations;

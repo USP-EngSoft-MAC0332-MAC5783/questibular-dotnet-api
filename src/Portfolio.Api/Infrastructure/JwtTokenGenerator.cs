@@ -48,7 +48,7 @@ public sealed class JwtTokenGenerator : ITokenGenerator
                 ClaimValueTypes.Integer64)
         };
         foreach (var role in user.Roles)
-            claims.Add(new Claim(ClaimTypes.Role, role));
+            claims.Add(new Claim("role", role));
 
         var token = new JwtSecurityToken(
             issuer: _settings.Issuer, audience: _settings.Audience,

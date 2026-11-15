@@ -12,7 +12,7 @@ using Portfolio.DataAccess.Postgres;
 namespace Portfolio.DataAccess.Migrations
 {
     [DbContext(typeof(PortfolioDbContext))]
-    [Migration("20261111193034_InitialCreate")]
+    [Migration("20261030215445_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

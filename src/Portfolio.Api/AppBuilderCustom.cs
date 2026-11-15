@@ -49,11 +49,24 @@ public class AppBuilderCustom : AppBuilder<AppBuilderCustom>
         // ── 4. Security (Hexagonal Adapter) ────────────
         _builder.Services.AddSecurityAdapters(config);
         _builder.Services.AddPortfolioAuthorization();
+        _builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, PortugueseAuthorizationResultHandler>();
+        _builder.Services.Configure<ApiBehaviorOptions>(options =>
+        {
+            options.InvalidModelStateResponseFactory = context => new BadRequestObjectResult(new ProblemDetails
+            {
+                Type = "https://httpstatuses.io/400",
+                Title = "Requisição inválida.",
+                Status = StatusCodes.Status400BadRequest,
+                Detail = "Um ou mais parâmetros informados são inválidos.",
+                Instance = context.HttpContext.Request.Path
+            });
+        });
 
         // ── 5. Application Services (Hexagonal Ports) ────────────
         _builder.Services.AddDomainEvents();
         _builder.Services.AddAuthFeature(config);
         _builder.Services.AddUsersFeature();
+        _builder.Services.AddExamResultsFeature();
         _builder.Services.AddExamFeature();
         _builder.Services.AddEnemApi(config);
 
@@ -88,6 +101,7 @@ public class AppBuilderCustom : AppBuilder<AppBuilderCustom>
                     ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
+                    RoleClaimType = "role",
                     ValidIssuer = jwt.Issuer,
                     ValidAudience = jwt.Audience,
                     IssuerSigningKey = new SymmetricSecurityKey(key)

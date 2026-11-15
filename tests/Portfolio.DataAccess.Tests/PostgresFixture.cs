@@ -1,5 +1,7 @@
 namespace Portfolio.DataAccess.Tests.Fixtures;
 
+using Npgsql;
+
 /// <summary>
 /// Boots a throwaway PostgreSQL container for the whole test run and
 /// applies all EF Core migrations once. Each test class gets a clean slate
@@ -25,6 +27,7 @@ public sealed class PostgresFixture : IAsyncLifetime
         .WithUsername("admin")
         .WithPassword("admin")
         .Build();
+    private NpgsqlDataSource? _dataSource;
 
     /// <summary>
     /// Creates a fresh <see cref="PortfolioDbContext"/> connected to the test container.
@@ -32,8 +35,10 @@ public sealed class PostgresFixture : IAsyncLifetime
     /// </summary>
     internal PortfolioDbContext CreateDbContext()
     {
+        var dataSource = _dataSource
+            ?? throw new InvalidOperationException("The PostgreSQL test data source has not been initialized.");
         var options = new DbContextOptionsBuilder<PortfolioDbContext>()
-            .UseNpgsql(_container.GetConnectionString())
+            .UseNpgsql(dataSource)
             .EnableSensitiveDataLogging()
             .Options;
 
@@ -50,6 +55,10 @@ public sealed class PostgresFixture : IAsyncLifetime
     {
         await _container.StartAsync();
 
+        var dataSourceBuilder = new NpgsqlDataSourceBuilder(_container.GetConnectionString());
+        dataSourceBuilder.EnableDynamicJson();
+        _dataSource = dataSourceBuilder.Build();
+
         await using var ctx = CreateDbContext();
         await ctx.Database.MigrateAsync();
     }
@@ -63,10 +72,16 @@ public sealed class PostgresFixture : IAsyncLifetime
     {
         await using var ctx = CreateDbContext();
         await ctx.Database.ExecuteSqlRawAsync(
-            "TRUNCATE TABLE \"Users\", \"RefreshTokens\" RESTART IDENTITY CASCADE;");
+            "TRUNCATE TABLE \"ExamAttempts\", \"Exams\", \"TeacherStudentLinks\", \"Users\", \"RefreshTokens\" RESTART IDENTITY CASCADE;");
     }
 
-    public async Task DisposeAsync() => await _container.DisposeAsync();
+    public async Task DisposeAsync()
+    {
+        if (_dataSource is not null)
+            await _dataSource.DisposeAsync();
+
+        await _container.DisposeAsync();
+    }
 }
 
 /// <summary>
