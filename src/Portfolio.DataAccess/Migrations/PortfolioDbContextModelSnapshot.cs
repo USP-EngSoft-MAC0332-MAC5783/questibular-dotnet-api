@@ -22,6 +22,75 @@ namespace Portfolio.DataAccess.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Portfolio.DataAccess.Models.ExamResultDbModel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Anonymous")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("AnonymousToken")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Answers")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<Guid>("ExamId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("FinishAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Humanities")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("Languages")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Math")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Nature")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("QuestionCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("StudentId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<int>("TimeInMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StudentId", "FinishAt");
+
+                    b.ToTable("ExamResults", (string)null);
+                });
+
             modelBuilder.Entity("Portfolio.DataAccess.Models.RefreshTokenDbModel", b =>
                 {
                     b.Property<string>("Id")
@@ -62,6 +131,21 @@ namespace Portfolio.DataAccess.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("RefreshTokens", (string)null);
+                });
+
+            modelBuilder.Entity("Portfolio.DataAccess.Models.TeacherStudentLinkDbModel", b =>
+                {
+                    b.Property<string>("TeacherId")
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("StudentId")
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("TeacherId", "StudentId");
+
+                    b.HasIndex("StudentId");
+
+                    b.ToTable("TeacherStudentLinks", (string)null);
                 });
 
             modelBuilder.Entity("Portfolio.DataAccess.Models.UserDbModel", b =>
@@ -124,11 +208,35 @@ namespace Portfolio.DataAccess.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
+            modelBuilder.Entity("Portfolio.DataAccess.Models.ExamResultDbModel", b =>
+                {
+                    b.HasOne("Portfolio.DataAccess.Models.UserDbModel", null)
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Portfolio.DataAccess.Models.RefreshTokenDbModel", b =>
                 {
                     b.HasOne("Portfolio.DataAccess.Models.UserDbModel", null)
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Portfolio.DataAccess.Models.TeacherStudentLinkDbModel", b =>
+                {
+                    b.HasOne("Portfolio.DataAccess.Models.UserDbModel", null)
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Portfolio.DataAccess.Models.UserDbModel", null)
+                        .WithMany()
+                        .HasForeignKey("TeacherId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

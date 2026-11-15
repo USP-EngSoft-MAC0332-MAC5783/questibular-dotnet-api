@@ -22,10 +22,13 @@ public static class DataAccessExtensions
 
         services.AddDbContext<PortfolioDbContext>(options =>
             options.UseNpgsql(connectionString));
+        services.AddHostedService<DatabaseMigrationHostedService>();
 
         // Postgres takes ownership of the Domain repository contracts.
         services.AddScoped<IUserRepository, PostgresUserRepository>();
         services.AddScoped<IRefreshTokenRepository, PostgresRefreshTokenRepository>();
+        services.AddScoped<IExamResultRepository, PostgresExamResultRepository>();
+        services.AddScoped<ITeacherStudentRepository, PostgresTeacherStudentRepository>();
 
         return services;
     }

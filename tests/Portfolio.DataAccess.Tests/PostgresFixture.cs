@@ -63,7 +63,7 @@ public sealed class PostgresFixture : IAsyncLifetime
     {
         await using var ctx = CreateDbContext();
         await ctx.Database.ExecuteSqlRawAsync(
-            "TRUNCATE TABLE \"Users\", \"RefreshTokens\" RESTART IDENTITY CASCADE;");
+            "TRUNCATE TABLE \"ExamResults\", \"Users\", \"RefreshTokens\" RESTART IDENTITY CASCADE;");
     }
 
     public async Task DisposeAsync() => await _container.DisposeAsync();

@@ -11,6 +11,8 @@ internal sealed class PortfolioDbContext : DbContext
     // Shared Models References
     public DbSet<UserDbModel> Users => Set<UserDbModel>();
     public DbSet<RefreshTokenDbModel> RefreshTokens => Set<RefreshTokenDbModel>();
+    public DbSet<ExamResultDbModel> ExamResults => Set<ExamResultDbModel>();
+    public DbSet<TeacherStudentLinkDbModel> TeacherStudentLinks => Set<TeacherStudentLinkDbModel>();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PortfolioDbContext"/> class

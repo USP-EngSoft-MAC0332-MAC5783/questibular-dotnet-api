@@ -19,6 +19,8 @@ global using Portfolio.Api.Features.Auth.Contracts;
 global using Portfolio.Api.Features.Auth.Handlers;
 global using Portfolio.Api.Features.Users;
 global using Portfolio.Api.Features.Users.Contracts;
+global using Portfolio.Api.Features.ExamResults;
+global using Portfolio.Api.Features.ExamResults.Contracts;
 global using Portfolio.Api.Infrastructure;
 global using Portfolio.Api.Infrastructure.Events;
 global using Portfolio.Api.Infrastructure.Security;
@@ -33,6 +35,7 @@ global using Portfolio.Domain.Events;
 global using Portfolio.Domain.Events.AuthEvents;
 global using Portfolio.Domain.Notifications;
 global using Portfolio.Domain.Repositories;
+global using Portfolio.Domain.ReadModels;
 global using Portfolio.Domain.Security;
 
 global using System.ComponentModel.DataAnnotations;
