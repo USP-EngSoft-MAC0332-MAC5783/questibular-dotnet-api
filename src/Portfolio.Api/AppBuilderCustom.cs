@@ -67,6 +67,8 @@ public class AppBuilderCustom : AppBuilder<AppBuilderCustom>
         _builder.Services.AddAuthFeature(config);
         _builder.Services.AddUsersFeature();
         _builder.Services.AddExamResultsFeature();
+        _builder.Services.AddExamFeature();
+        _builder.Services.AddEnemApi(config);
 
         ConfigureJwtAuthentication();
 
