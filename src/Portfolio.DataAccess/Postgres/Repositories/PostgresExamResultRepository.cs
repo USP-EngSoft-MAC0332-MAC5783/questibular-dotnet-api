@@ -25,13 +25,15 @@ internal sealed class PostgresExamResultRepository : IExamResultRepository
                     cancellationToken)))
             return null;
 
-        var results = await _context.ExamResults
+        var attempts = await _context.ExamAttempts
             .AsNoTracking()
-            .Where(result => result.StudentId == studentId && result.FinishAt.HasValue)
-            .OrderByDescending(result => result.FinishAt)
+            .Where(attempt => !attempt.IsAnonymous
+                && attempt.UserId == studentId
+                && attempt.FinishedAt.HasValue)
+            .OrderByDescending(attempt => attempt.FinishedAt)
             .ToListAsync(cancellationToken);
 
-        return results.Select(ToReadModel).ToArray();
+        return await ToReadModelsAsync(attempts, cancellationToken);
     }
 
     public async Task<ExamResultReadModel?> GetResultByIdAsync(
@@ -41,40 +43,83 @@ internal sealed class PostgresExamResultRepository : IExamResultRepository
         bool isTeacher,
         CancellationToken cancellationToken)
     {
-        var result = await _context.ExamResults
+        var attempt = await _context.ExamAttempts
             .AsNoTracking()
-            .Where(item => item.Id == resultId
-                && item.FinishAt.HasValue
-                && ((isStudent && item.StudentId == requestingUserId)
+            .Where(item => item.Id == resultId.ToString("N")
+                && item.FinishedAt.HasValue
+                && !item.IsAnonymous
+                && ((isStudent && item.UserId == requestingUserId)
                     || (isTeacher && _context.TeacherStudentLinks.Any(link =>
-                        link.StudentId == item.StudentId && link.TeacherId == requestingUserId))))
+                        link.StudentId == item.UserId && link.TeacherId == requestingUserId))))
             .SingleOrDefaultAsync(cancellationToken);
 
-        return result is null ? null : ToReadModel(result);
+        if (attempt is null)
+            return null;
+
+        var exam = await _context.Exams
+            .AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == attempt.ExamId, cancellationToken)
+            ?? throw new InvalidOperationException($"Exam '{attempt.ExamId}' for attempt '{attempt.Id}' was not found.");
+
+        return ToReadModel(attempt, exam);
     }
 
-    private static ExamResultReadModel ToReadModel(ExamResultDbModel result)
+    private async Task<IReadOnlyList<ExamResultReadModel>> ToReadModelsAsync(
+        IReadOnlyList<ExamAttemptDbModel> attempts,
+        CancellationToken cancellationToken)
     {
-        var answers = JsonSerializer.Deserialize<List<ExamAnswerReadModel>>(
-            result.Answers,
-            AnswerJsonOptions) ?? [];
+        if (attempts.Count == 0)
+            return [];
+
+        var examIds = attempts.Select(attempt => attempt.ExamId).Distinct().ToArray();
+        var exams = await _context.Exams
+            .AsNoTracking()
+            .Where(exam => examIds.Contains(exam.Id))
+            .ToDictionaryAsync(exam => exam.Id, cancellationToken);
+
+        return attempts.Select(attempt =>
+        {
+            if (!exams.TryGetValue(attempt.ExamId, out var exam))
+                throw new InvalidOperationException(
+                    $"Exam '{attempt.ExamId}' for attempt '{attempt.Id}' was not found.");
+
+            return ToReadModel(attempt, exam);
+        }).ToArray();
+    }
+
+    private static ExamResultReadModel ToReadModel(ExamAttemptDbModel attempt, ExamDbModel exam)
+    {
+        if (!Guid.TryParse(attempt.Id, out var resultId))
+            throw new InvalidOperationException($"Attempt ID '{attempt.Id}' is not a valid GUID.");
+        if (!Guid.TryParse(exam.Id, out var examId))
+            throw new InvalidOperationException($"Exam ID '{exam.Id}' is not a valid GUID.");
+        if (!int.TryParse(exam.Year, out var year))
+            throw new InvalidOperationException($"Exam year '{exam.Year}' is not valid.");
+
+        var questionIndexes = attempt.ServedQuestions.Count > 0
+            ? attempt.ServedQuestions.Select(question => question.Index).Distinct().ToArray()
+            : attempt.Answers.Select(answer => answer.Index).Distinct().ToArray();
+        var answers = attempt.Answers
+            .Select(answer => new ExamAnswerReadModel(answer.Index, answer.SelectedAlternative))
+            .ToArray();
 
         return new ExamResultReadModel(
-            result.Id,
-            result.ExamId,
-            result.Title,
-            result.Year,
-            result.TimeInMinutes,
-            result.QuestionCount,
-            result.Language,
-            result.Humanities,
-            result.Nature,
-            result.Languages,
-            result.Math,
-            result.Anonymous,
-            result.AnonymousToken,
-            result.StartedAt,
-            result.FinishAt!.Value,
+            resultId,
+            examId,
+            exam.Title,
+            year,
+            attempt.TimeInMinutes,
+            attempt.QuestionCount,
+            attempt.SelectedLanguage ?? "ingles",
+            attempt.IncludeHumanities,
+            attempt.IncludeNature,
+            attempt.IncludeLanguages,
+            attempt.IncludeMath,
+            attempt.IsAnonymous,
+            attempt.AnonymousToken,
+            new DateTimeOffset(DateTime.SpecifyKind(attempt.StartedAt, DateTimeKind.Utc)),
+            new DateTimeOffset(DateTime.SpecifyKind(attempt.FinishedAt!.Value, DateTimeKind.Utc)),
+            questionIndexes,
             answers);
     }
 }

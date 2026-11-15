@@ -16,6 +16,7 @@ public sealed record ExamResultReadModel(
     string? AnonymousToken,
     DateTimeOffset StartedAt,
     DateTimeOffset FinishAt,
+    IReadOnlyList<int> QuestionIndexes,
     IReadOnlyList<ExamAnswerReadModel> Answers);
 
 public sealed record ExamAnswerReadModel(int QuestionIndex, string? SelectedAlternativeLetter);

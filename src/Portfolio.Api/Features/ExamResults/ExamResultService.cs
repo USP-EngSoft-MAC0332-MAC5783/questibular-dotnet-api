@@ -4,6 +4,7 @@ using Portfolio.Api.Features.ExamResults.Contracts;
 
 public sealed class ExamResultService : IExamResultService
 {
+    private const int ExternalPageLimit = 50;
     private readonly IExamResultRepository _results;
     private readonly IEnemQuestionsClient _questions;
 
@@ -32,24 +33,10 @@ public sealed class ExamResultService : IExamResultService
         if (results is null)
             return null;
 
-        var pages = new Dictionary<(int Year, string Language), EnemQuestionPage>();
+        var questionCache = new Dictionary<(int Year, string Language), QuestionCache>();
         var responses = new List<ExamResultResponse>(results.Count);
         foreach (var result in results)
-        {
-            var pageKey = (result.Year, result.Language);
-            if (!pages.TryGetValue(pageKey, out var page))
-            {
-                page = await _questions.GetQuestionsAsync(
-                    result.Year,
-                    result.Language,
-                    limit,
-                    offset,
-                    cancellationToken);
-                pages.Add(pageKey, page);
-            }
-
-            responses.Add(ToResponse(result, page));
-        }
+            responses.Add(await ToResponseAsync(result, limit, offset, questionCache, cancellationToken));
 
         return responses;
     }
@@ -73,19 +60,41 @@ public sealed class ExamResultService : IExamResultService
         if (result is null)
             return null;
 
-        var page = await _questions.GetQuestionsAsync(
-            result.Year,
-            result.Language,
+        return await ToResponseAsync(
+            result,
             limit,
             offset,
+            new Dictionary<(int Year, string Language), QuestionCache>(),
             cancellationToken);
-        return ToResponse(result, page);
     }
 
-    private static ExamResultResponse ToResponse(ExamResultReadModel result, EnemQuestionPage page)
+    private async Task<ExamResultResponse> ToResponseAsync(
+        ExamResultReadModel result,
+        int limit,
+        int offset,
+        Dictionary<(int Year, string Language), QuestionCache> cache,
+        CancellationToken cancellationToken)
     {
+        var pageIndexes = result.QuestionIndexes.Skip(offset).Take(limit).ToArray();
+        var cacheKey = (result.Year, result.Language);
+        if (!cache.TryGetValue(cacheKey, out var questionCache))
+        {
+            questionCache = new QuestionCache();
+            cache.Add(cacheKey, questionCache);
+        }
+
+        await questionCache.LoadAsync(
+            _questions,
+            result.Year,
+            result.Language,
+            pageIndexes,
+            cancellationToken);
+
         var answersByQuestion = result.Answers.ToDictionary(answer => answer.QuestionIndex);
-        var questions = page.Questions
+        var questions = pageIndexes
+            .Select(index => questionCache.Questions.TryGetValue(index, out var question)
+                ? question
+                : throw new JsonException($"A questão {index} não foi encontrada na API externa do ENEM."))
             .Select(question => new ExamResultQuestionResponse(
                 question.Title,
                 question.Index,
@@ -123,10 +132,10 @@ public sealed class ExamResultService : IExamResultService
             result.StartedAt,
             result.FinishAt,
             new ExamResultMetadataResponse(
-                page.Metadata.Limit,
-                page.Metadata.Offset,
-                page.Metadata.Total,
-                page.Metadata.HasMore),
+                limit,
+                offset,
+                result.QuestionIndexes.Count,
+                offset + questions.Length < result.QuestionIndexes.Count),
             questions);
     }
 
@@ -145,5 +154,40 @@ public sealed class ExamResultService : IExamResultService
         }
 
         return null;
+    }
+
+    private sealed class QuestionCache
+    {
+        private int _nextExternalOffset;
+        private bool _hasMore = true;
+
+        public Dictionary<int, EnemQuestion> Questions { get; } = [];
+
+        public async Task LoadAsync(
+            IEnemQuestionsClient client,
+            int year,
+            string language,
+            IReadOnlyCollection<int> requestedIndexes,
+            CancellationToken cancellationToken)
+        {
+            while (_hasMore && requestedIndexes.Any(index => !Questions.ContainsKey(index)))
+            {
+                var page = await client.GetQuestionsAsync(
+                    year,
+                    language,
+                    ExternalPageLimit,
+                    _nextExternalOffset,
+                    cancellationToken);
+
+                foreach (var question in page.Questions)
+                    Questions.TryAdd(question.Index, question);
+
+                _nextExternalOffset = page.Metadata.Offset + page.Metadata.Limit;
+                _hasMore = page.Metadata.HasMore;
+
+                if (page.Questions.Count == 0 && _hasMore)
+                    throw new JsonException("A API externa do ENEM retornou uma página vazia com mais questões disponíveis.");
+            }
+        }
     }
 }

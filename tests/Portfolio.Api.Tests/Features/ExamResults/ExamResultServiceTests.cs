@@ -33,7 +33,7 @@ public sealed class ExamResultServiceTests
             .ReturnsAsync(results);
 
         var questionPage = new EnemQuestionPage(
-            new EnemQuestionMetadata(9, 180, 182, false),
+            new EnemQuestionMetadata(50, 0, 182, true),
             [
                 new EnemQuestion(
                     "Questão 180 - ENEM 2020",
@@ -58,8 +58,8 @@ public sealed class ExamResultServiceTests
             .Setup(value => value.GetQuestionsAsync(
                 2023,
                 "ingles",
-                9,
-                180,
+                50,
+                0,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(questionPage);
         var service = new ExamResultService(repository.Object, questions.Object);
@@ -69,13 +69,13 @@ public sealed class ExamResultServiceTests
             requestingUserId,
             isStudent: true,
             isTeacher: false,
-            limit: 9,
-            offset: 180,
+            limit: 1,
+            offset: 0,
             CancellationToken.None);
 
         response.Should().HaveCount(2);
         response![0].Id.Should().Be(firstResultId);
-        response[0].Metadata.Should().Be(new ExamResultMetadataResponse(9, 180, 182, false));
+        response[0].Metadata.Should().Be(new ExamResultMetadataResponse(1, 0, 1, false));
         response[0].Questions.Should().ContainSingle();
         response[0].Questions[0].CorrectAlternative.Should().Be("C");
         response[0].Questions[0].SelectedAlternative.Should()
@@ -84,8 +84,8 @@ public sealed class ExamResultServiceTests
         questions.Verify(value => value.GetQuestionsAsync(
             2023,
             "ingles",
-            9,
-            180,
+            50,
+            0,
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -106,5 +106,6 @@ public sealed class ExamResultServiceTests
             null,
             DateTimeOffset.UtcNow.AddHours(-2),
             DateTimeOffset.UtcNow,
+            [180],
             [new ExamAnswerReadModel(180, "E")]);
 }

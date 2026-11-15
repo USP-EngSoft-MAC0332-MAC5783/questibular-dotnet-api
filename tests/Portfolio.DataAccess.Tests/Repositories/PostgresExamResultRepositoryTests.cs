@@ -1,5 +1,6 @@
 namespace Portfolio.DataAccess.Tests.Repositories;
 
+using System.Collections.Generic;
 using Portfolio.DataAccess.Models;
 using Portfolio.Domain.ReadModels;
 
@@ -14,11 +15,11 @@ public sealed class PostgresExamResultRepositoryTests : IAsyncLifetime
     public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
-    public async Task GetResultByIdAsync_ReturnsOnlyTheStudentsFinishedResultAndStoredAnswers()
+    public async Task GetResultByIdAsync_ReturnsTheStudentsFinishedAttemptAndAnswers()
     {
         var studentId = Guid.NewGuid().ToString("N");
         var resultId = Guid.NewGuid();
-        await SeedResultAsync(studentId, resultId);
+        await SeedAttemptAsync(studentId, resultId);
 
         await using var context = _fixture.CreateDbContext();
         var repository = new PostgresExamResultRepository(context);
@@ -39,18 +40,20 @@ public sealed class PostgresExamResultRepositoryTests : IAsyncLifetime
         result.Should().NotBeNull();
         result!.Answers.Should().ContainSingle()
             .Which.Should().Be(new ExamAnswerReadModel(180, "E"));
+        result.QuestionIndexes.Should().Equal(180);
         result.Title.Should().Be("ENEM 2023");
         result.Year.Should().Be(2023);
+        result.Id.Should().Be(resultId);
         otherStudentResult.Should().BeNull();
     }
 
     [Fact]
-    public async Task GetResultsForStudentAsync_ReturnsCompletedResultsOnlyToStudentOrLinkedTeacher()
+    public async Task GetResultsForStudentAsync_ReturnsFinishedAttemptsOnlyToStudentOrLinkedTeacher()
     {
         var studentId = Guid.NewGuid().ToString("N");
         var teacherId = Guid.NewGuid().ToString("N");
         var completedResultId = Guid.NewGuid();
-        await SeedResultAsync(studentId, completedResultId);
+        await SeedAttemptAsync(studentId, completedResultId);
 
         await using var context = _fixture.CreateDbContext();
         context.Users.Add(CreateUser(teacherId, "teacher"));
@@ -59,17 +62,17 @@ public sealed class PostgresExamResultRepositoryTests : IAsyncLifetime
             TeacherId = teacherId,
             StudentId = studentId
         });
-        context.ExamResults.Add(new ExamResultDbModel
-        {
-            Id = Guid.NewGuid(),
-            ExamId = Guid.NewGuid(),
-            StudentId = studentId,
-            Title = "Em andamento",
-            Year = 2023,
-            Language = "ingles",
-            StartedAt = DateTimeOffset.UtcNow,
-            Answers = "[]"
-        });
+        context.ExamAttempts.Add(CreateAttempt(
+            Guid.NewGuid().ToString("N"),
+            Guid.NewGuid().ToString("N"),
+            studentId,
+            finishedAt: null));
+        context.ExamAttempts.Add(CreateAttempt(
+            Guid.NewGuid().ToString("N"),
+            Guid.NewGuid().ToString("N"),
+            null,
+            finishedAt: DateTime.UtcNow,
+            isAnonymous: true));
         await context.SaveChangesAsync();
 
         var repository = new PostgresExamResultRepository(context);
@@ -98,31 +101,71 @@ public sealed class PostgresExamResultRepositoryTests : IAsyncLifetime
         unauthorizedResults.Should().BeNull();
     }
 
-    private async Task SeedResultAsync(string studentId, Guid resultId)
+    private async Task SeedAttemptAsync(string studentId, Guid resultId)
     {
         await using var context = _fixture.CreateDbContext();
+        var examId = Guid.NewGuid().ToString("N");
         context.Users.Add(CreateUser(studentId));
-        context.ExamResults.Add(new ExamResultDbModel
-        {
-            Id = resultId,
-            ExamId = Guid.NewGuid(),
-            StudentId = studentId,
-            Title = "ENEM 2023",
-            Year = 2023,
-            TimeInMinutes = 120,
-            QuestionCount = 182,
-            Language = "ingles",
-            Humanities = true,
-            Nature = true,
-            Languages = true,
-            Math = false,
-            Anonymous = true,
-            StartedAt = DateTimeOffset.UtcNow.AddHours(-2),
-            FinishAt = DateTimeOffset.UtcNow,
-            Answers = """[{"questionIndex":180,"selectedAlternativeLetter":"E"}]"""
-        });
+        context.Exams.Add(CreateExam(examId));
+        context.ExamAttempts.Add(CreateAttempt(
+            resultId.ToString("N"),
+            examId,
+            studentId,
+            DateTime.UtcNow,
+            [
+                new AttemptQuestionDbModel { Index = 180, Discipline = "matematica" }
+            ],
+            [
+                new QuestionAnswerDbModel
+                {
+                    Index = 180,
+                    CorrectAlternative = "C",
+                    SelectedAlternative = "E"
+                }
+            ]));
         await context.SaveChangesAsync();
     }
+
+    private static ExamDbModel CreateExam(string examId)
+        => new()
+        {
+            Id = examId,
+            Title = "ENEM 2023",
+            Year = "2023",
+            IsSynced = true,
+            Languages = ["ingles"],
+            Disciplines = ["matematica"],
+            CreatedAt = DateTime.UtcNow
+        };
+
+    private static ExamAttemptDbModel CreateAttempt(
+        string id,
+        string examId,
+        string? userId,
+        DateTime? finishedAt,
+        List<AttemptQuestionDbModel>? servedQuestions = null,
+        List<QuestionAnswerDbModel>? answers = null,
+        bool isAnonymous = false)
+        => new()
+        {
+            Id = id,
+            ExamId = examId,
+            UserId = userId,
+            IsAnonymous = isAnonymous,
+            StartedAt = DateTime.UtcNow.AddHours(-2),
+            PlannedFinishAt = DateTime.UtcNow,
+            FinishedAt = finishedAt,
+            TimeInMinutes = 120,
+            QuestionCount = 182,
+            SelectedLanguage = "ingles",
+            IncludeHumanities = true,
+            IncludeNature = true,
+            IncludeLanguages = true,
+            IncludeMath = false,
+            ServedQuestions = servedQuestions ?? [],
+            Answers = answers ?? [],
+            CreatedAt = DateTime.UtcNow
+        };
 
     private static UserDbModel CreateUser(string id, string role = "student")
         => new()
