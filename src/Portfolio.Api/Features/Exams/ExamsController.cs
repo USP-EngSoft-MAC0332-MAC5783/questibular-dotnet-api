@@ -182,11 +182,54 @@ public sealed class ExamsController : BaseApiController<ExamsController>
         }
     }
 
+
+    [HttpGet("list/{studentId}")]
+    [Authorize]
+    [ProducesResponseType(typeof(StudentExamHistoryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [EndpointSummary("Obtém o histórico de simulados de um aluno")]
+    [EndpointDescription("Retorna a lista paginada de simulados finalizados do aluno, ordenados do mais recente para o mais antigo. Acessível apenas pelo próprio aluno ou por um professor vinculado a ele.")]
+    public async Task<ActionResult<StudentExamHistoryResponse>> GetStudentHistory(
+        string studentId,
+        [FromQuery] int limit = 10,
+        [FromQuery] int offset = 0,
+        CancellationToken ct = default)
+    {
+        var requestingUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                            ?? User.FindFirst("sub")?.Value;
+
+        if (string.IsNullOrWhiteSpace(requestingUserId))
+            return Unauthorized(BuildProblem("Acesso negado", "Não foi possível identificar o usuário autenticado.", 401));
+
+        // Sanitização básica da paginação
+        if (limit <= 0 || limit > 50) limit = 10;
+        if (offset < 0) offset = 0;
+
+        try
+        {
+            var result = await _examFacade.GetStudentHistoryAsync(studentId, requestingUserId, limit, offset, ct);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(BuildProblem("Acesso negado", ex.Message, 401));
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            return BadRequest(BuildProblem("Falha ao obter histórico", ex.Message, 400));
+        }
+    }
+
     // ===================== Helpers =====================
     private string? GetAuthenticatedUserId()
-        => User.Identity?.IsAuthenticated == true
-            ? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
-            : null;
+    {
+        if (User.Identity?.IsAuthenticated != true)
+            return null;
+
+        return User.FindFirst("sub")?.Value 
+            ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    }
             
     private static ProblemDetails BuildProblem(string title, string detail, int status)
         => new()

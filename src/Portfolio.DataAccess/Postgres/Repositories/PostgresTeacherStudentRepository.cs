@@ -33,4 +33,14 @@ internal sealed class PostgresTeacherStudentRepository : ITeacherStudentReposito
 
         return true;
     }
+
+    public async Task<bool> HasLinkAsync(string teacherId, string studentId, CancellationToken ct)
+    {
+        // Usando SQL puro caso você não tenha uma entidade DbSet mapeada para TeacherStudentLinks
+        var count = await _context.Database
+            .SqlQuery<int>($"SELECT COUNT(1) FROM \"TeacherStudentLinks\" WHERE \"TeacherId\" = {teacherId} AND \"StudentId\" = {studentId}")
+            .FirstOrDefaultAsync(ct);
+
+        return count > 0;
+    }
 }

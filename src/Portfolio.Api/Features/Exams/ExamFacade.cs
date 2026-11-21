@@ -13,6 +13,7 @@ public sealed class ExamFacade : IExamFacade
 {
     private readonly IExamRepository _examRepository;
     private readonly IExamAttemptRepository _attemptRepository;
+    private readonly ITeacherStudentRepository _teacherStudentRepository;
     private readonly IEnemApiClient _enemApi;
     private readonly IUserRepository _userRepository;
     private readonly IClock _clock;
@@ -21,6 +22,7 @@ public sealed class ExamFacade : IExamFacade
     public ExamFacade(
         IExamRepository examRepository,
         IExamAttemptRepository attemptRepository,
+        ITeacherStudentRepository teacherStudentRepository,
         IEnemApiClient enemApi,
         IUserRepository userRepository,
         IClock clock,
@@ -28,6 +30,7 @@ public sealed class ExamFacade : IExamFacade
     {
         _examRepository = examRepository ?? throw new ArgumentNullException(nameof(examRepository));
         _attemptRepository = attemptRepository ?? throw new ArgumentNullException(nameof(attemptRepository));
+        _teacherStudentRepository = teacherStudentRepository ?? throw new ArgumentNullException(nameof(teacherStudentRepository));
         _enemApi = enemApi ?? throw new ArgumentNullException(nameof(enemApi));
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
         _clock = clock ?? throw new ArgumentNullException(nameof(clock));
@@ -216,6 +219,12 @@ public sealed class ExamFacade : IExamFacade
         var newServed = nextQuestions.Select(q => new AttemptQuestion(q.Index, q.Discipline ?? "unknown", q.Language));
         attempt.AddServedQuestions(newServed, now);
 
+        Console.WriteLine($"Disciplinas selecionadas: {string.Join(", ", selectedDisciplines)}");
+        Console.WriteLine($"Questões disponíveis na API: {page.Questions.Count}");
+        Console.WriteLine($"Questões após filtro de disciplina: {availableQuestions.Count}");
+        Console.WriteLine($"Questões já servidas: {alreadyServedIndexes.Count}");
+        Console.WriteLine($"Questões restantes: {availableQuestions.Count - alreadyServedIndexes.Count}");
+
         return (nextQuestions, availableQuestions.Count);
     }
 
@@ -364,6 +373,70 @@ public sealed class ExamFacade : IExamFacade
         );
     }
     
+
+    public async Task<StudentExamHistoryResponse> GetStudentHistoryAsync(
+        string studentId, 
+        string? requestingUserId, 
+        int limit, 
+        int offset, 
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(requestingUserId))
+            throw new UnauthorizedAccessException("Autenticação necessária.");
+
+        // 1. Verifica as Roles do usuário logado
+        var user = await _userRepository.GetByIdAsync(requestingUserId, ct)
+            ?? throw new UnauthorizedAccessException("Usuário não encontrado.");
+
+        var isStudent = user.Roles.Contains("student", StringComparer.OrdinalIgnoreCase);
+        var isTeacher = user.Roles.Contains("teacher", StringComparer.OrdinalIgnoreCase);
+
+        // 2. Regra de Acesso: Aluno só acessa o próprio histórico
+        if (isStudent && requestingUserId != studentId)
+            throw new UnauthorizedAccessException("Você não tem permissão para acessar o histórico de outro aluno.");
+
+        // 3. Regra de Acesso: Professor precisa ter vínculo com o aluno
+        if (isTeacher)
+        {
+            var hasLink = await _teacherStudentRepository.HasLinkAsync(requestingUserId, studentId, ct);
+            if (!hasLink)
+                throw new UnauthorizedAccessException("Você não tem permissão para acessar o histórico deste aluno, pois não há vínculo entre vocês.");
+        }
+
+        if (!isStudent && !isTeacher)
+            throw new UnauthorizedAccessException("Apenas alunos e professores podem acessar históricos.");
+
+        // 4. Busca paginada no banco
+        var (attempts, _) = await _attemptRepository.GetFinishedByStudentIdAsync(studentId, limit, offset, ct);
+
+        if (attempts.Count == 0)
+            return new StudentExamHistoryResponse([]); 
+
+        // 5. Carrega as provas associadas de forma otimizada
+        var examIds = attempts.Select(a => a.ExamId).Distinct().ToList();
+        var exams = new Dictionary<string, Exam>();
+        
+        foreach (var examId in examIds)
+        {
+            var exam = await _examRepository.GetByIdAsync(examId, ct);
+            if (exam != null) exams[examId] = exam;
+        }
+
+        // 6. Monta a resposta usando o mesmo método que monta o relatório do Finish
+        var historyItems = new List<StudentExamHistoryItem>();
+
+        foreach (var attempt in attempts)
+        {
+            if (exams.TryGetValue(attempt.ExamId, out var exam))
+            {
+                var fullReport = BuildReportResponse(exam, attempt);
+                historyItems.Add(new StudentExamHistoryItem(fullReport.Exam, fullReport.Report));
+            }
+        }
+
+        return new StudentExamHistoryResponse(historyItems);
+    }
+
     // ===================== Helpers =====================
     private static void EnsureAttemptOwnership(ExamAttempt attempt, string? userId, bool anonymous, string? anonymousToken)
     {

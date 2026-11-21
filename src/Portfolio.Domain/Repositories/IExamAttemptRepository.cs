@@ -17,4 +17,5 @@ public interface IExamAttemptRepository
     /// Need to run as a background job.
     /// </summary>
     Task<int> DeleteExpiredAnonymousAttemptsAsync(DateTime now, CancellationToken ct = default);
+    Task<(List<ExamAttempt> Attempts, int TotalCount)> GetFinishedByStudentIdAsync(string studentId, int limit, int offset, CancellationToken ct = default);
 }

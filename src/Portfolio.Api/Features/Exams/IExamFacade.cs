@@ -20,4 +20,11 @@ public interface IExamFacade
         int limit, 
         int offset, 
         CancellationToken ct = default);
+
+    Task<StudentExamHistoryResponse> GetStudentHistoryAsync(
+        string studentId, 
+        string? requestingUserId, 
+        int limit, 
+        int offset, 
+        CancellationToken ct = default);
 }

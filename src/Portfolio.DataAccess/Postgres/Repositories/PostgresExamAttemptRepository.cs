@@ -41,4 +41,22 @@ internal sealed class PostgresExamAttemptRepository : IExamAttemptRepository
         _context.ExamAttempts
             .Where(a => a.IsAnonymous && a.ExpiresAt != null && a.ExpiresAt < now)
             .ExecuteDeleteAsync(ct);
+
+    public async Task<(List<ExamAttempt> Attempts, int TotalCount)> GetFinishedByStudentIdAsync(
+        string studentId, int limit, int offset, CancellationToken ct = default)
+    {
+        var query = _context.ExamAttempts
+            .AsNoTracking()
+            .Where(a => a.UserId == studentId && a.FinishedAt != null)
+            .OrderByDescending(a => a.FinishedAt); // Ordem decrescente (mais recentes primeiro)
+
+        var totalCount = await query.CountAsync(ct);
+        
+        var attempts = await query
+            .Skip(offset)
+            .Take(limit)
+            .ToListAsync(ct);
+
+        return (attempts.Adapt<List<ExamAttempt>>(), totalCount);
+    }
 }

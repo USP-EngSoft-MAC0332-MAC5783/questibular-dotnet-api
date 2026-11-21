@@ -6,4 +6,6 @@ public interface ITeacherStudentRepository
         string teacherId,
         string studentId,
         CancellationToken cancellationToken);
+
+    Task<bool> HasLinkAsync(string teacherId, string studentId, CancellationToken ct);
 }
