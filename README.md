@@ -90,3 +90,9 @@ dotnet sonarscanner end /d:sonar.token="<YOUR_TOKEN>"
 Connect to the Postgres instance using the credentials from your `.env` file. Any client that supports PostgreSQL will work (e.g., [DBeaver](https://dbeaver.io/)).
 
 ![Postgres connection](./docs/tutorials/PostgresConn.png)
+
+This is the command to update the database with the Tables of the project:
+
+```bash
+POSTGRES_USER=admin POSTGRES_PASSWORD=admin POSTGRES_HOST=localhost POSTGRES_PORT=5432 POSTGRES_DATABASE=questibular dotnet ef database update -p src/Portfolio.DataAccess -s src/Portfolio.Api
+```

@@ -88,93 +88,50 @@ public sealed class ExamFacade : IExamFacade
     {
         ExamAttempt attempt;
         Exam exam;
-        var now = _clock.UtcNow;
 
         if (!string.IsNullOrEmpty(request.Id))
         {
-            attempt = await _attemptRepository.GetByIdAsync(request.Id, ct)
-                ?? throw new InvalidOperationException("Simulado não encontrado.");
-
-            if (attempt.FinishedAt.HasValue)
-                throw new InvalidOperationException("Este simulado já foi finalizado.");
-
-            if (!attempt.IsAnonymous && attempt.UserId != userId)
-                throw new UnauthorizedAccessException("Você não tem permissão para continuar este simulado.");
-
-            exam = await _examRepository.GetByIdAsync(attempt.ExamId, ct)
-                ?? throw new InvalidOperationException("Exame associado não encontrado.");
+            return await GetNextQuestionsAsync(request.Id, userId, request.AnonymousToken, ct);
         }
-        else
+
+        var now = _clock.UtcNow;
+        
+        exam = await _examRepository.GetByYearAsync(request.Year, ct)
+            ?? throw new InvalidOperationException("Exame não encontrado no sistema.");
+
+        if (!exam.IsSynced)
+            throw new InvalidOperationException("Este simulado ainda está sendo preparado. Tente novamente em instantes.");
+
+        if (!request.Anonymous)
         {
-            exam = await _examRepository.GetByYearAsync(request.Year, ct)
-                ?? throw new InvalidOperationException("Exame não encontrado no sistema.");
+            if (string.IsNullOrEmpty(userId))
+                throw new UnauthorizedAccessException("Usuário não autenticado.");
 
-            if (!exam.IsSynced)
-                throw new InvalidOperationException("Este simulado ainda está sendo preparado. Tente novamente em instantes.");
+            var user = await _userRepository.GetByIdAsync(userId, ct)
+                ?? throw new UnauthorizedAccessException("Usuário não encontrado.");
 
-            if (!request.Anonymous)
-            {
-                if (string.IsNullOrEmpty(userId))
-                    throw new UnauthorizedAccessException("Usuário não autenticado.");
-
-                var user = await _userRepository.GetByIdAsync(userId, ct)
-                    ?? throw new UnauthorizedAccessException("Usuário não encontrado.");
-
-                if (!user.Roles.Contains(UserRole.Student.ToString(), StringComparer.OrdinalIgnoreCase))
-                    throw new UnauthorizedAccessException("Apenas usuários do tipo aluno podem iniciar um simulado.");
-            }
-
-            attempt = ExamAttempt.Create(
-                exam.Id, userId, request.Anonymous, request.AnonymousToken,
-                request.TimeInMinutes, request.QuestionCount, request.Language,
-                request.Humanities, request.Nature, request.Languages, request.Math, now);
+            if (!user.Roles.Contains(UserRole.Student.ToString(), StringComparer.OrdinalIgnoreCase))
+                throw new UnauthorizedAccessException("Apenas usuários do tipo aluno podem iniciar um simulado.");
         }
 
-        var examYearAsInt = int.Parse(exam.Year);
+        attempt = ExamAttempt.Create(
+            exam.Id, userId, request.Anonymous, request.AnonymousToken,
+            request.TimeInMinutes, request.QuestionCount, request.Language,
+            request.Humanities, request.Nature, request.Languages, request.Math, now);
 
-        var page = await _enemApi.GetQuestionsAsync(
-            examYearAsInt, 
-            attempt.SelectedLanguage, 
-            limit: 200, 
-            offset: 0, 
-            ct);
+        var (nextQuestions, availableCount) = await FetchNextQuestionsAsync(attempt, exam, now, ct);
 
-        var selectedDisciplines = GetDisciplines(attempt);
-        var availableQuestions = page.Questions
-            .Where(q => selectedDisciplines.Contains(q.Discipline ?? ""))
-            .DistinctBy(q => q.Index)
-            .ToList();
-
-        var alreadyServedIndexes = attempt.ServedQuestions.Select(q => q.Index).ToHashSet();
-        var nextQuestions = availableQuestions
-            .Where(q => !alreadyServedIndexes.Contains(q.Index))
-            .Take(attempt.QuestionCount)
-            .ToList();
-
-        if (nextQuestions.Count == 0)
-            throw new InvalidOperationException("Não há mais questões disponíveis para esta seleção de disciplinas.");
-
-        var newServed = nextQuestions.Select(q => new AttemptQuestion(q.Index, q.Discipline ?? "unknown", q.Language));
-        attempt.AddServedQuestions(newServed, now); 
-
-        if (string.IsNullOrEmpty(request.Id))
-        {
-            await _attemptRepository.AddAsync(attempt, ct);
-            await _examRepository.IncrementStartAsync(exam.Id, now, ct);
-        }
-        else
-        {
-            await _attemptRepository.UpdateAsync(attempt, ct);
-        }
+        await _attemptRepository.AddAsync(attempt, ct);
+        await _examRepository.IncrementStartAsync(exam.Id, now, ct);
 
         var responsePage = new EnemApiQuestionsPage
         {
             Metadata = new EnemApiPagination
             {
-                Limit = attempt.QuestionCount,
-                Offset = alreadyServedIndexes.Count,
-                Total = availableQuestions.Count,
-                HasMore = availableQuestions.Count > (alreadyServedIndexes.Count + nextQuestions.Count)
+                Limit = nextQuestions.Count,
+                Offset = 0,
+                Total = attempt.QuestionCount,
+                HasMore = attempt.QuestionCount > nextQuestions.Count
             },
             Questions = nextQuestions
         };
@@ -182,10 +139,93 @@ public sealed class ExamFacade : IExamFacade
         return MapStartResponse(attempt, exam, responsePage);
     }
 
+    public async Task<StartExamResponse> GetNextQuestionsAsync(string attemptId, string? userId, string? anonymousToken, CancellationToken ct = default)
+    {
+        var attempt = await _attemptRepository.GetByIdAsync(attemptId, ct)
+            ?? throw new InvalidOperationException("Simulado não encontrado.");
+
+        EnsureAttemptOwnership(attempt, userId, attempt.IsAnonymous, anonymousToken);
+
+        if (attempt.FinishedAt.HasValue)
+            throw new InvalidOperationException("Este simulado já foi finalizado.");
+
+        var now = _clock.UtcNow;
+        
+        if (attempt.IsExpiredAt(now))
+            throw new InvalidOperationException("O tempo para realizar este simulado expirou.");
+
+        var exam = await _examRepository.GetByIdAsync(attempt.ExamId, ct)
+            ?? throw new InvalidOperationException("Exame associado não encontrado.");
+
+        var alreadyServedCount = attempt.ServedQuestions.Count;
+
+        var (nextQuestions, availableCount) = await FetchNextQuestionsAsync(attempt, exam, now, ct);
+
+        await _attemptRepository.UpdateAsync(attempt, ct);
+
+        var responsePage = new EnemApiQuestionsPage
+        {
+            Metadata = new EnemApiPagination
+            {
+                Limit = nextQuestions.Count,
+                Offset = alreadyServedCount,
+                Total = attempt.QuestionCount,
+                HasMore = attempt.ServedQuestions.Count < attempt.QuestionCount
+            },
+            Questions = nextQuestions
+        };
+
+        return MapStartResponse(attempt, exam, responsePage);
+    }
+
+    private async Task<(List<EnemApiQuestion> NextQuestions, int TotalAvailable)> FetchNextQuestionsAsync(
+        ExamAttempt attempt, Exam exam, DateTime now, CancellationToken ct)
+    {
+        var examYearAsInt = int.Parse(exam.Year);
+
+        // 1. Busca na API externa
+        var page = await _enemApi.GetQuestionsAsync(
+            examYearAsInt, attempt.SelectedLanguage, limit: 200, offset: 0, ct);
+
+        // 2. Filtra disciplinas e remove duplicatas
+        var selectedDisciplines = GetDisciplines(attempt);
+        var availableQuestions = page.Questions
+            .Where(q => selectedDisciplines.Contains(q.Discipline ?? ""))
+            .DistinctBy(q => q.Index)
+            .ToList();
+
+        const int PageSize = 10;
+        var remainingToServe = attempt.QuestionCount - attempt.ServedQuestions.Count;
+
+        if (remainingToServe <= 0)
+            throw new InvalidOperationException("Você já recebeu todas as questões solicitadas para este simulado.");
+
+        var takeCount = Math.Min(PageSize, remainingToServe);
+
+        // 3. Remove as questões já servidas e pega a quantidade correta
+        var alreadyServedIndexes = attempt.ServedQuestions.Select(q => q.Index).ToHashSet();
+        var nextQuestions = availableQuestions
+            .Where(q => !alreadyServedIndexes.Contains(q.Index))
+            .Take(takeCount)
+            .ToList();
+
+        if (nextQuestions.Count == 0)
+            throw new InvalidOperationException("Não há mais questões disponíveis para esta seleção de disciplinas.");
+
+        // 4. Salva no histórico (na memória, o Facade chamará o Repository depois)
+        var newServed = nextQuestions.Select(q => new AttemptQuestion(q.Index, q.Discipline ?? "unknown", q.Language));
+        attempt.AddServedQuestions(newServed, now);
+
+        return (nextQuestions, availableQuestions.Count);
+    }
+
     public async Task<FinishExamResponse> FinishExamAsync(FinishExamRequest request, string? userId, CancellationToken ct = default)
     {
         var attempt = await _attemptRepository.GetByIdAsync(request.Id, ct)
-            ?? throw new InvalidOperationException("Simulado não encontrado.");
+            ?? throw new InvalidOperationException("Simulado não encontrado ao tentar finalizar exame.");
+
+        var exam = await _examRepository.GetByIdAsync(attempt.ExamId, ct)
+            ?? throw new InvalidOperationException("Exame associado não encontrado.");
 
         EnsureAttemptOwnership(attempt, userId, request.Anonymous, request.AnonymousToken);
 
@@ -194,17 +234,32 @@ public sealed class ExamFacade : IExamFacade
 
         var now = _clock.UtcNow;
 
-        var answers = request.Questions
-            .DistinctBy(q => q.Index)
-            .Select(q => QuestionAnswer.Create(q.Index, q.CorrectAlternative, q.SelectedAlternative))
-            .ToList();
+        var examYearAsInt = int.Parse(exam.Year);
+        var page = await _enemApi.GetQuestionsAsync(examYearAsInt, attempt.SelectedLanguage, limit: 200, offset: 0, ct);
+        
+        var gabarito = page.Questions
+            .GroupBy(q => q.Index)
+            .ToDictionary(g => g.Key, g => g.First().CorrectAlternative);
+
+        var answers = new List<QuestionAnswer>();
+    
+        foreach (var q in request.Questions.DistinctBy(q => q.Index))
+        {
+            // Verifica se a questão realmente pertence a este simulado
+            if (!attempt.ServedQuestions.Any(s => s.Index == q.Index))
+                throw new InvalidOperationException($"A questão {q.Index} não pertence a este simulado.");
+
+            // Busca o gabarito oficial na API
+            if (!gabarito.TryGetValue(q.Index, out var officialCorrectAlternative))
+                throw new InvalidOperationException($"Gabarito oficial da questão {q.Index} não encontrado.");
+
+            // Cria a resposta usando a alternativa oficial + a escolha do usuário
+            answers.Add(QuestionAnswer.Create(q.Index, officialCorrectAlternative, q.SelectedAlternative));
+        }
 
         attempt.RegisterAnswers(answers, now);
         attempt.Finish(now);
         await _attemptRepository.UpdateAsync(attempt, ct);
-
-        var exam = await _examRepository.GetByIdAsync(attempt.ExamId, ct)
-            ?? throw new InvalidOperationException("Exame associado não encontrado.");
 
         await _examRepository.IncrementFinishAsync(exam.Id, answers.Count, now, ct);
 
@@ -214,7 +269,7 @@ public sealed class ExamFacade : IExamFacade
     public async Task<FinishExamResponse> GetReportAsync(string id, string? userId, CancellationToken ct = default)
     {
         var attempt = await _attemptRepository.GetByIdAsync(id, ct)
-            ?? throw new InvalidOperationException("Simulado não encontrado.");
+            ?? throw new InvalidOperationException("Simulado não encontrado ao tentar obter relatório.");
 
         EnsureAttemptOwnership(attempt, userId, attempt.IsAnonymous, attempt.AnonymousToken);
 
@@ -225,6 +280,88 @@ public sealed class ExamFacade : IExamFacade
             ?? throw new InvalidOperationException("Exame associado não encontrado.");
 
         return BuildReportResponse(exam, attempt);
+    }
+
+    public async Task<ExamResultsResponse> GetResultsAsync(
+        string id, 
+        string? userId, 
+        string? anonymousToken, 
+        int limit, 
+        int offset, 
+        CancellationToken ct = default)
+    {
+        var attempt = await _attemptRepository.GetByIdAsync(id, ct)
+            ?? throw new InvalidOperationException("Simulado não encontrado.");
+
+        EnsureAttemptOwnership(attempt, userId, attempt.IsAnonymous, anonymousToken);
+
+        var exam = await _examRepository.GetByIdAsync(attempt.ExamId, ct)
+            ?? throw new InvalidOperationException("Exame associado não encontrado.");
+
+        // 1. Busca as questões completas na API (com contexto, imagens e alternativas)
+        // Usamos limit 200 para garantir que pegamos todas as questões da prova do ENEM.
+        var examYearAsInt = int.Parse(exam.Year);
+        var page = await _enemApi.GetQuestionsAsync(examYearAsInt, attempt.SelectedLanguage, limit: 200, offset: 0, ct);
+
+        // 2. Prepara os filtros e buscas O(1)
+        var servedIndexes = attempt.ServedQuestions.Select(q => q.Index).ToHashSet();
+        var answersByIndex = attempt.Answers.ToDictionary(a => a.Index);
+
+        // 3. Filtra apenas as questões que foram servidas e ordena
+        var allServedQuestions = page.Questions
+            .Where(x => servedIndexes.Contains(x.Index))
+            .OrderBy(q => q.Index)
+            .ToList();
+
+        var totalCount = allServedQuestions.Count;
+
+        // 4. Aplica a paginação (Skip / Take)
+        var paginatedQuestions = allServedQuestions
+            .Skip(offset)
+            .Take(limit)
+            .ToList();
+
+        var resultQuestions = new List<ExamResultQuestionDto>();
+
+        // 5. Monta o DTO de resposta cruzando com o que o aluno respondeu
+        foreach (var q in paginatedQuestions)
+        {
+            answersByIndex.TryGetValue(q.Index, out var answer);
+            
+            var selected = answer?.SelectedAlternative ?? string.Empty;
+            var isCorrect = !string.IsNullOrEmpty(selected) && 
+                            string.Equals(selected, q.CorrectAlternative, StringComparison.OrdinalIgnoreCase);
+
+            resultQuestions.Add(new ExamResultQuestionDto(
+                Title: q.Title,
+                Index: q.Index,
+                Discipline: q.Discipline,
+                Language: q.Language,
+                Year: q.Year,
+                Context: q.Context,
+                Files: q.Files,
+                CorrectAlternative: q.CorrectAlternative,
+                SelectedAlternative: selected,
+                IsCorrect: isCorrect,
+                AlternativesIntroduction: q.AlternativesIntroduction,
+                Alternatives: q.Alternatives.Select(a => new AlternativeDto(a.Letter, a.Text, a.File, a.IsCorrect))
+            ));
+        }
+
+        return new ExamResultsResponse(
+            Id: attempt.Id,
+            ExamId: exam.Id,
+            Year: examYearAsInt,
+            StartedAt: attempt.StartedAt,
+            FinishedAt: attempt.FinishedAt,
+            Metadata: new ExamMetadataDto(
+                Limit: limit,
+                Offset: offset,
+                Total: totalCount,
+                HasMore: offset + limit < totalCount
+            ),
+            Questions: resultQuestions
+        );
     }
     
     // ===================== Helpers =====================

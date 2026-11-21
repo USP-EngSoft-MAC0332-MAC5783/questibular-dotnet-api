@@ -109,6 +109,7 @@ public sealed class ExamResultsController : BaseApiController<ExamResultsControl
         if (userId is null)
             return ProblemResponse(StatusCodes.Status401Unauthorized, "Autenticação necessária.",
                 "Não foi possível identificar o usuário autenticado.");
+                
         var isStudent = User.IsInRole("student");
         var isTeacher = User.IsInRole("teacher");
         if (!isStudent && !isTeacher)

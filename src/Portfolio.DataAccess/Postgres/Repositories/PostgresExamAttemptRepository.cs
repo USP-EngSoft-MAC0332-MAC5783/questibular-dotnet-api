@@ -29,6 +29,9 @@ internal sealed class PostgresExamAttemptRepository : IExamAttemptRepository
 
         db.FinishedAt = attempt.FinishedAt;
         db.Answers = attempt.Answers.Adapt<List<QuestionAnswerDbModel>>();
+        
+        db.ServedQuestions = attempt.ServedQuestions.Adapt<List<AttemptQuestionDbModel>>();
+
         db.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync(ct);
