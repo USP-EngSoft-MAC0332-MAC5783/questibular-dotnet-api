@@ -15,7 +15,7 @@ public sealed class ExamResultService : IExamResultService
     }
 
     public async Task<IReadOnlyList<ExamResultResponse>?> GetResultsForStudentAsync(
-        Guid studentId,
+        string studentId,
         string requestingUserId,
         bool isStudent,
         bool isTeacher,
@@ -24,7 +24,7 @@ public sealed class ExamResultService : IExamResultService
         CancellationToken cancellationToken)
     {
         var results = await _results.GetResultsForStudentAsync(
-            studentId.ToString("N"),
+            studentId,
             requestingUserId,
             isStudent,
             isTeacher,
@@ -42,7 +42,7 @@ public sealed class ExamResultService : IExamResultService
     }
 
     public async Task<ExamResultResponse?> GetResultByIdAsync(
-        Guid resultId,
+        string resultId,
         string requestingUserId,
         bool isStudent,
         bool isTeacher,

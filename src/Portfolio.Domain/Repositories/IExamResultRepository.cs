@@ -12,7 +12,7 @@ public interface IExamResultRepository
         CancellationToken cancellationToken);
 
     Task<ExamResultReadModel?> GetResultByIdAsync(
-        Guid resultId,
+        string resultId,
         string requestingUserId,
         bool isStudent,
         bool isTeacher,

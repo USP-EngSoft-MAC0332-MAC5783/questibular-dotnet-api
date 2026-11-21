@@ -36,11 +36,49 @@ internal sealed class PostgresTeacherStudentRepository : ITeacherStudentReposito
 
     public async Task<bool> HasLinkAsync(string teacherId, string studentId, CancellationToken ct)
     {
-        // Usando SQL puro caso você não tenha uma entidade DbSet mapeada para TeacherStudentLinks
-        var count = await _context.Database
-            .SqlQuery<int>($"SELECT COUNT(1) FROM \"TeacherStudentLinks\" WHERE \"TeacherId\" = {teacherId} AND \"StudentId\" = {studentId}")
+        return await _context.Database
+            .SqlQuery<bool>($"""
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM "TeacherStudentLinks"
+                    WHERE "TeacherId" = {teacherId} AND "StudentId" = {studentId}
+                ) AS "Value"
+                """)
             .FirstOrDefaultAsync(ct);
-
-        return count > 0;
     }
+
+    public async Task<IReadOnlyList<(string Id, string Name, string Email)>> GetLinkedStudentsAsync(
+        string teacherId,
+        CancellationToken ct = default)
+    {
+        var rows = await _context.Database
+            .SqlQuery<LinkedStudentRow>(
+                $"""
+                SELECT u."Id", u."Name", u."Email"
+                FROM "TeacherStudentLinks" tsl
+                INNER JOIN "Users" u ON u."Id" = tsl."StudentId"
+                WHERE tsl."TeacherId" = {teacherId}
+                ORDER BY u."Name" ASC
+                """)
+            .ToListAsync(ct);
+
+        return rows.Select(r => (r.Id, r.Name, r.Email)).ToList();
+    }
+
+    public async Task<bool> RemoveLinkAsync(
+        string teacherId,
+        string studentId,
+        CancellationToken cancellationToken)
+    {
+        var affectedRows = await _context.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+            DELETE FROM "TeacherStudentLinks"
+            WHERE "TeacherId" = {teacherId} AND "StudentId" = {studentId}
+            """,
+            cancellationToken);
+
+        return affectedRows > 0;
+    }
+
+    private sealed record LinkedStudentRow(string Id, string Name, string Email);
 }

@@ -18,7 +18,7 @@ public sealed class PostgresExamResultRepositoryTests : IAsyncLifetime
     public async Task GetResultByIdAsync_ReturnsTheStudentsFinishedAttemptAndAnswers()
     {
         var studentId = Guid.NewGuid().ToString("N");
-        var resultId = Guid.NewGuid();
+        var resultId = Guid.NewGuid().ToString("N");
         await SeedAttemptAsync(studentId, resultId);
 
         await using var context = _fixture.CreateDbContext();
@@ -52,7 +52,7 @@ public sealed class PostgresExamResultRepositoryTests : IAsyncLifetime
     {
         var studentId = Guid.NewGuid().ToString("N");
         var teacherId = Guid.NewGuid().ToString("N");
-        var completedResultId = Guid.NewGuid();
+        var completedResultId = Guid.NewGuid().ToString("N");
         await SeedAttemptAsync(studentId, completedResultId);
 
         await using var context = _fixture.CreateDbContext();
@@ -101,14 +101,14 @@ public sealed class PostgresExamResultRepositoryTests : IAsyncLifetime
         unauthorizedResults.Should().BeNull();
     }
 
-    private async Task SeedAttemptAsync(string studentId, Guid resultId)
+    private async Task SeedAttemptAsync(string studentId, string resultId)
     {
         await using var context = _fixture.CreateDbContext();
         var examId = Guid.NewGuid().ToString("N");
         context.Users.Add(CreateUser(studentId));
         context.Exams.Add(CreateExam(examId));
         context.ExamAttempts.Add(CreateAttempt(
-            resultId.ToString("N"),
+            resultId,
             examId,
             studentId,
             DateTime.UtcNow,

@@ -32,4 +32,11 @@ public interface IExamFacade
         string? studentId,
         string? requestingUserId,
         CancellationToken ct = default);
+
+    Task<ExamResultsResponse> GetStudentExamResultsForTeacherAsync(
+        string attemptId,
+        string? requestingUserId,
+        int limit,
+        int offset,
+        CancellationToken ct = default);
 }

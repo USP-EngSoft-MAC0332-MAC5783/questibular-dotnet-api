@@ -221,6 +221,47 @@ public sealed class ExamsController : BaseApiController<ExamsController>
         }
     }
 
+    [HttpGet("/api/v{version:apiVersion}/teachers/exams/{attemptId}/results")]
+    [Authorize(Roles = "teacher")]
+    [ProducesResponseType(typeof(ExamResultsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointSummary("Obtém o resultado detalhado de um simulado de um aluno vinculado")]
+    [EndpointDescription("Retorna as questões, alternativas, gabarito e respostas marcadas pelo aluno em um simulado específico. Acessível apenas pelo professor autenticado que possua vínculo com o aluno dono do simulado.")]
+    public async Task<ActionResult<ExamResultsResponse>> GetStudentExamResultsForTeacher(
+        string attemptId,
+        [FromQuery] int limit = 10,
+        [FromQuery] int offset = 0,
+        CancellationToken ct = default)
+    {
+        var teacherId = GetAuthenticatedUserId();
+        if (string.IsNullOrWhiteSpace(teacherId))
+            return Unauthorized(BuildProblem("Acesso negado", "Não foi possível identificar o professor autenticado.", 401));
+
+        if (limit <= 0 || limit > 50) limit = 10;
+        if (offset < 0) offset = 0;
+
+        try
+        {
+            var result = await _examFacade.GetStudentExamResultsForTeacherAsync(attemptId, teacherId, limit, offset, ct);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(BuildProblem("Simulado não encontrado", ex.Message, 404));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, BuildProblem("Acesso negado", ex.Message, 403));
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            return BadRequest(BuildProblem("Falha ao obter resultados", ex.Message, 400));
+        }
+    }
+    
     // ===================== Helpers =====================
     private string? GetAuthenticatedUserId()
     {

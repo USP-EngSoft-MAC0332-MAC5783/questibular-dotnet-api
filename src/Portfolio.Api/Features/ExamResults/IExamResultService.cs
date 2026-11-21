@@ -5,7 +5,7 @@ using Portfolio.Api.Features.ExamResults.Contracts;
 public interface IExamResultService
 {
     Task<IReadOnlyList<ExamResultResponse>?> GetResultsForStudentAsync(
-        Guid studentId,
+        string studentId,
         string requestingUserId,
         bool isStudent,
         bool isTeacher,
@@ -14,7 +14,7 @@ public interface IExamResultService
         CancellationToken cancellationToken);
 
     Task<ExamResultResponse?> GetResultByIdAsync(
-        Guid resultId,
+        string resultId,
         string requestingUserId,
         bool isStudent,
         bool isTeacher,

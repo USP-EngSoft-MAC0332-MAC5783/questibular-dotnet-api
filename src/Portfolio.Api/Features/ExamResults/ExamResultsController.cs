@@ -22,6 +22,7 @@ public sealed class ExamResultsController : BaseApiController<ExamResultsControl
         : base(logger, appContextService)
         => _results = results ?? throw new ArgumentNullException(nameof(results));
 
+    /**
     /// <summary>Returns every completed result for a student, each with a page of questions.</summary>
     [HttpGet("student/{studentId}")]
     [EndpointSummary("Obtém as resoluções de um aluno com questões paginadas")]
@@ -31,7 +32,7 @@ public sealed class ExamResultsController : BaseApiController<ExamResultsControl
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IReadOnlyList<ExamResultResponse>>> ListByStudent(
-        Guid studentId,
+        string studentId,
         CancellationToken cancellationToken,
         [FromQuery] int limit = DefaultLimit,
         [FromQuery] int offset = 0)
@@ -93,7 +94,7 @@ public sealed class ExamResultsController : BaseApiController<ExamResultsControl
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status502BadGateway)]
     public async Task<ActionResult<ExamResultResponse>> GetById(
-        Guid resultId,
+        string resultId,
         CancellationToken cancellationToken,
         [FromQuery] int limit = DefaultLimit,
         [FromQuery] int offset = 0)
@@ -175,4 +176,6 @@ public sealed class ExamResultsController : BaseApiController<ExamResultsControl
         {
             StatusCode = status
         };
+
+    */
 }

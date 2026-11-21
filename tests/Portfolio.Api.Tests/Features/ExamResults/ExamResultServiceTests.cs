@@ -13,8 +13,8 @@ public sealed class ExamResultServiceTests
     [Fact]
     public async Task GetResultsForStudentAsync_ReturnsFullResultsAndFetchesEachExamPageOnlyOnce()
     {
-        var studentId = Guid.NewGuid();
-        var requestingUserId = studentId.ToString("N");
+        var studentId = Guid.NewGuid().ToString("N");
+        var requestingUserId = studentId;
         var firstResultId = Guid.NewGuid();
         var secondResultId = Guid.NewGuid();
         var results = new[]

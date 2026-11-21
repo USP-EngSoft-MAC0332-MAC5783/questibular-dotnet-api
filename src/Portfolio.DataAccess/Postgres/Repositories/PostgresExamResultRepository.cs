@@ -37,7 +37,7 @@ internal sealed class PostgresExamResultRepository : IExamResultRepository
     }
 
     public async Task<ExamResultReadModel?> GetResultByIdAsync(
-        Guid resultId,
+        string resultId,
         string requestingUserId,
         bool isStudent,
         bool isTeacher,
@@ -45,7 +45,7 @@ internal sealed class PostgresExamResultRepository : IExamResultRepository
     {
         var attempt = await _context.ExamAttempts
             .AsNoTracking()
-            .Where(item => item.Id == resultId.ToString("N")
+            .Where(item => item.Id == resultId
                 && item.FinishedAt.HasValue
                 && !item.IsAnonymous
                 && ((isStudent && item.UserId == requestingUserId)

@@ -619,6 +619,38 @@ public sealed class ExamFacade : IExamFacade
             Evolution: evolution);
     }
 
+    public async Task<ExamResultsResponse> GetStudentExamResultsForTeacherAsync(
+        string attemptId,
+        string? requestingUserId,
+        int limit,
+        int offset,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(attemptId))
+            throw new ArgumentException("O identificador do simulado é obrigatório.");
+
+        if (string.IsNullOrWhiteSpace(requestingUserId))
+            throw new UnauthorizedAccessException("Autenticação necessária.");
+
+        var teacher = await _userRepository.GetByIdAsync(requestingUserId, ct)
+            ?? throw new UnauthorizedAccessException("Usuário não encontrado.");
+
+        if (!teacher.Roles.Contains("teacher", StringComparer.OrdinalIgnoreCase))
+            throw new UnauthorizedAccessException("Apenas professores podem acessar este recurso.");
+
+        var attempt = await _attemptRepository.GetByIdAsync(attemptId.Trim(), ct)
+            ?? throw new KeyNotFoundException("Simulado não encontrado.");
+
+        if (attempt.IsAnonymous || string.IsNullOrEmpty(attempt.UserId))
+            throw new UnauthorizedAccessException("Simulados anônimos não podem ser consultados por professores.");
+
+        var hasLink = await _teacherStudentRepository.HasLinkAsync(requestingUserId, attempt.UserId, ct);
+        if (!hasLink)
+            throw new UnauthorizedAccessException("Você não tem permissão para visualizar este simulado, pois não há vínculo com o aluno.");
+
+        return await BuildExamResultsAsync(attempt, limit, offset, ct);
+    }
+
     // ===================== Helpers =====================
     private static void EnsureAttemptOwnership(ExamAttempt attempt, string? userId, bool anonymous, string? anonymousToken)
     {
@@ -762,5 +794,74 @@ public sealed class ExamFacade : IExamFacade
             QuestionCountMath: exam.QuestionCountMath);
 
         return new FinishExamResponse(examInfo, report);
+    }
+
+    private async Task<ExamResultsResponse> BuildExamResultsAsync(
+        ExamAttempt attempt,
+        int limit,
+        int offset,
+        CancellationToken ct)
+    {
+        var exam = await _examRepository.GetByIdAsync(attempt.ExamId, ct)
+            ?? throw new InvalidOperationException("Exame associado não encontrado.");
+
+        var examYearAsInt = int.Parse(exam.Year);
+        var page = await _enemApi.GetQuestionsAsync(examYearAsInt, attempt.SelectedLanguage, limit: 200, offset: 0, ct);
+
+        var servedIndexes = attempt.ServedQuestions.Select(q => q.Index).ToHashSet();
+        var answersByIndex = attempt.Answers.ToDictionary(a => a.Index);
+
+        var allServedQuestions = page.Questions
+            .Where(x => servedIndexes.Contains(x.Index))
+            .OrderBy(q => q.Index)
+            .ToList();
+
+        var totalCount = allServedQuestions.Count;
+
+        var paginatedQuestions = allServedQuestions
+            .Skip(offset)
+            .Take(limit)
+            .ToList();
+
+        var resultQuestions = new List<ExamResultQuestionDto>();
+
+        foreach (var q in paginatedQuestions)
+        {
+            answersByIndex.TryGetValue(q.Index, out var answer);
+
+            var selected = answer?.SelectedAlternative ?? string.Empty;
+            var isCorrect = !string.IsNullOrEmpty(selected) &&
+                            string.Equals(selected, q.CorrectAlternative, StringComparison.OrdinalIgnoreCase);
+
+            resultQuestions.Add(new ExamResultQuestionDto(
+                Title: q.Title,
+                Index: q.Index,
+                Discipline: q.Discipline,
+                Language: q.Language,
+                Year: q.Year,
+                Context: q.Context,
+                Files: q.Files,
+                CorrectAlternative: q.CorrectAlternative,
+                SelectedAlternative: selected,
+                IsCorrect: isCorrect,
+                AlternativesIntroduction: q.AlternativesIntroduction,
+                Alternatives: q.Alternatives.Select(a => new AlternativeDto(a.Letter, a.Text, a.File, a.IsCorrect))
+            ));
+        }
+
+        return new ExamResultsResponse(
+            Id: attempt.Id,
+            ExamId: exam.Id,
+            Year: examYearAsInt,
+            StartedAt: attempt.StartedAt,
+            FinishedAt: attempt.FinishedAt,
+            Metadata: new ExamMetadataDto(
+                Limit: limit,
+                Offset: offset,
+                Total: totalCount,
+                HasMore: offset + limit < totalCount
+            ),
+            Questions: resultQuestions
+        );
     }
 }
