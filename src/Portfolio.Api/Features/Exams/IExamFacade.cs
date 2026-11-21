@@ -12,4 +12,12 @@ public interface IExamFacade
     Task<FinishExamResponse> FinishExamAsync(FinishExamRequest request, string? userId, CancellationToken ct = default);
 
     Task<FinishExamResponse> GetReportAsync(string id, string? userId, CancellationToken ct = default);
+    Task<StartExamResponse> GetNextQuestionsAsync(string attemptId, string? userId, string? anonymousToken, CancellationToken ct = default);
+    Task<ExamResultsResponse> GetResultsAsync(
+        string id, 
+        string? userId, 
+        string? anonymousToken, 
+        int limit, 
+        int offset, 
+        CancellationToken ct = default);
 }

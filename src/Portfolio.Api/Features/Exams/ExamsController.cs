@@ -69,6 +69,34 @@ public sealed class ExamsController : BaseApiController<ExamsController>
         }
     }
 
+
+    [HttpGet("{id}/questions")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(StartExamResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<StartExamResponse>> GetNextQuestions(
+        string id,
+        [FromHeader(Name = "X-Anonymous-Token")] string? anonymousToken, 
+        CancellationToken ct)
+    {
+        var userId = GetAuthenticatedUserId();
+
+        try
+        {
+            var result = await _examFacade.GetNextQuestionsAsync(id, userId, anonymousToken, ct);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(BuildProblem("Acesso negado", ex.Message, 401));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(BuildProblem("Falha ao obter questões", ex.Message, 400));
+        }
+    }
+
     // ===================== US10 — POST /api/v1/exams/finish =====================
     [HttpPost("finish")]
     [AllowAnonymous]
@@ -118,6 +146,39 @@ public sealed class ExamsController : BaseApiController<ExamsController>
         catch (InvalidOperationException ex)
         {
             return BadRequest(BuildProblem("Falha ao obter relatório", ex.Message, 400));
+        }
+    }
+
+    [HttpGet("{id}/results")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ExamResultsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<ExamResultsResponse>> GetResults(
+        string id,
+        [FromQuery] int limit = 10,
+        [FromQuery] int offset = 0,
+        [FromHeader(Name = "X-Anonymous-Token")] string? anonymousToken = null,
+        CancellationToken ct = default)
+    {
+        var userId = GetAuthenticatedUserId();
+
+        // Validação básica de paginação
+        if (limit <= 0 || limit > 50) limit = 10;
+        if (offset < 0) offset = 0;
+
+        try
+        {
+            var result = await _examFacade.GetResultsAsync(id, userId, anonymousToken, limit, offset, ct);
+            return Ok(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(BuildProblem("Acesso negado", ex.Message, 401));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(BuildProblem("Falha ao obter resultados", ex.Message, 400));
         }
     }
 

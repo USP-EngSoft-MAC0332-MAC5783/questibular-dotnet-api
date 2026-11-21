@@ -160,4 +160,6 @@ public sealed class ExamAttempt : EntityMetadata
         _servedQuestions.AddRange(questions);
         UpdatedAt = now;
     }
+
+    public bool IsExpiredAt(DateTime now) => PlannedFinishAt < now;
 }
