@@ -12,5 +12,6 @@ global using Portfolio.DataAccess.Postgres.Repositories;
 
 global using Portfolio.Domain.Entities;
 global using Portfolio.Domain.Repositories;
+global using Portfolio.Domain.ReadModels;
 
 global using System.Runtime.CompilerServices;
