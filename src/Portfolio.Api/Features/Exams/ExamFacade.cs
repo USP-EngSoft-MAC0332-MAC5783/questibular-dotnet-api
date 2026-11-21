@@ -437,6 +437,188 @@ public sealed class ExamFacade : IExamFacade
         return new StudentExamHistoryResponse(historyItems);
     }
 
+    public async Task<StudentScoreResponse> GetStudentScoreAsync(
+        string? studentId,
+        string? requestingUserId,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(requestingUserId))
+            throw new UnauthorizedAccessException("Autenticação necessária.");
+
+        var user = await _userRepository.GetByIdAsync(requestingUserId, ct)
+            ?? throw new UnauthorizedAccessException("Usuário não encontrado.");
+
+        var isStudent = user.Roles.Contains("student", StringComparer.OrdinalIgnoreCase);
+        var isTeacher = user.Roles.Contains("teacher", StringComparer.OrdinalIgnoreCase);
+
+        string targetStudentId;
+
+        if (string.IsNullOrWhiteSpace(studentId))
+        {
+            // Sem studentId informado: usa o próprio aluno logado
+            if (!isStudent)
+                throw new UnauthorizedAccessException("Apenas alunos podem consultar a própria pontuação sem informar o identificador do aluno.");
+
+            targetStudentId = requestingUserId;
+        }
+        else
+        {
+            // Com studentId informado: valida se é professor e se possui vínculo com o aluno
+            if (!isTeacher)
+                throw new UnauthorizedAccessException("Apenas professores vinculados podem consultar a pontuação informando o identificador de um aluno.");
+
+            // Normaliza caso o cliente envie Guid com hífens na URL (padrão do banco é formato "N")
+            var normalizedStudentId = Guid.TryParse(studentId, out var parsedGuid)
+                ? parsedGuid.ToString("N")
+                : studentId.Trim();
+
+            var hasLink = await _teacherStudentRepository.HasLinkAsync(requestingUserId, normalizedStudentId, ct);
+            if (!hasLink)
+                throw new UnauthorizedAccessException("Você não tem permissão para acessar a pontuação deste aluno, pois não há vínculo entre vocês.");
+
+            targetStudentId = normalizedStudentId;
+        }
+
+        // Busca todas as tentativas finalizadas do aluno alvo
+        var (attempts, _) = await _attemptRepository.GetFinishedByStudentIdAsync(targetStudentId, int.MaxValue, 0, ct);
+
+        if (attempts.Count == 0)
+        {
+            return new StudentScoreResponse(
+                ExamAttemptCount: 0,
+                NumberOfQuestionsSolved: 0,
+                LastExamAttempt: null,
+                Average: "0.0",
+                BestScore: "0.0",
+                BestScoreDiscipline: null,
+                PerformanceDisciplines: new PerformanceDisciplinesDto("0.0", "0.0", "0.0", "0.0"),
+                Evolution: []);
+        }
+
+        // Garante ordenação cronológica para o gráfico de evolução (do mais antigo para o mais recente)
+        var orderedAttempts = attempts
+            .OrderBy(a => a.FinishedAt ?? a.StartedAt)
+            .ToList();
+
+        var evolution = new List<ScoreEvolutionItemDto>(orderedAttempts.Count);
+        var generalScores = new List<double>(orderedAttempts.Count);
+        var totalSolved = 0;
+
+        var totalAnsweredByDisc = new Dictionary<string, int>
+        {
+            ["ciencias-humanas"] = 0,
+            ["ciencias-natureza"] = 0,
+            ["linguagens"] = 0,
+            ["matematica"] = 0
+        };
+
+        var totalCorrectByDisc = new Dictionary<string, int>
+        {
+            ["ciencias-humanas"] = 0,
+            ["ciencias-natureza"] = 0,
+            ["linguagens"] = 0,
+            ["matematica"] = 0
+        };
+
+        foreach (var attempt in orderedAttempts)
+        {
+            var servedByIndex = attempt.ServedQuestions
+                .GroupBy(q => q.Index)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            var distinctAnswers = attempt.Answers.DistinctBy(a => a.Index).ToList();
+            totalSolved += distinctAnswers.Count;
+
+            var attemptAnsweredByDisc = new Dictionary<string, int>();
+            var attemptCorrectByDisc = new Dictionary<string, int>();
+
+            foreach (var ans in distinctAnswers)
+            {
+                var disc = servedByIndex.TryGetValue(ans.Index, out var served)
+                    ? served.Discipline
+                    : "unknown";
+
+                attemptAnsweredByDisc[disc] = attemptAnsweredByDisc.GetValueOrDefault(disc, 0) + 1;
+                if (ans.IsCorrect)
+                    attemptCorrectByDisc[disc] = attemptCorrectByDisc.GetValueOrDefault(disc, 0) + 1;
+
+                if (totalAnsweredByDisc.ContainsKey(disc))
+                {
+                    totalAnsweredByDisc[disc]++;
+                    if (ans.IsCorrect)
+                        totalCorrectByDisc[disc]++;
+                }
+            }
+
+            double CalcAttemptPct(string discKey)
+            {
+                var ansCount = attemptAnsweredByDisc.GetValueOrDefault(discKey, 0);
+                return ansCount > 0
+                    ? (double)attemptCorrectByDisc.GetValueOrDefault(discKey, 0) / ansCount * 100.0
+                    : 0.0;
+            }
+
+            var attemptTotalCorrect = distinctAnswers.Count(a => a.IsCorrect);
+            var attemptGeneralPct = distinctAnswers.Count > 0
+                ? (double)attemptTotalCorrect / distinctAnswers.Count * 100.0
+                : 0.0;
+
+            generalScores.Add(attemptGeneralPct);
+
+            evolution.Add(new ScoreEvolutionItemDto(
+                Id: attempt.Id,
+                ExamId: attempt.ExamId,
+                General: attemptGeneralPct.ToString("F1", CultureInfo.InvariantCulture),
+                Humanities: CalcAttemptPct("ciencias-humanas").ToString("F1", CultureInfo.InvariantCulture),
+                Nature: CalcAttemptPct("ciencias-natureza").ToString("F1", CultureInfo.InvariantCulture),
+                Languages: CalcAttemptPct("linguagens").ToString("F1", CultureInfo.InvariantCulture),
+                Math: CalcAttemptPct("matematica").ToString("F1", CultureInfo.InvariantCulture),
+                Attempt: attempt.FinishedAt ?? attempt.StartedAt));
+        }
+
+        double CalcGlobalPct(string discKey)
+        {
+            var ansCount = totalAnsweredByDisc[discKey];
+            return ansCount > 0 ? (double)totalCorrectByDisc[discKey] / ansCount * 100.0 : 0.0;
+        }
+
+        var perfHumanities = CalcGlobalPct("ciencias-humanas");
+        var perfNature = CalcGlobalPct("ciencias-natureza");
+        var perfLanguages = CalcGlobalPct("linguagens");
+        var perfMath = CalcGlobalPct("matematica");
+
+        var disciplineScores = new (string Name, double Score, int Answered)[]
+        {
+            ("Humanities", perfHumanities, totalAnsweredByDisc["ciencias-humanas"]),
+            ("Nature", perfNature, totalAnsweredByDisc["ciencias-natureza"]),
+            ("Languages", perfLanguages, totalAnsweredByDisc["linguagens"]),
+            ("Math", perfMath, totalAnsweredByDisc["matematica"])
+        };
+
+        var bestDiscipline = disciplineScores
+            .Where(d => d.Answered > 0)
+            .OrderByDescending(d => d.Score)
+            .FirstOrDefault().Name;
+
+        var averageScore = generalScores.Average();
+        var bestScore = generalScores.Max();
+        var lastAttemptDate = orderedAttempts.Last().FinishedAt ?? orderedAttempts.Last().StartedAt;
+
+        return new StudentScoreResponse(
+            ExamAttemptCount: orderedAttempts.Count,
+            NumberOfQuestionsSolved: totalSolved,
+            LastExamAttempt: lastAttemptDate,
+            Average: averageScore.ToString("F1", CultureInfo.InvariantCulture),
+            BestScore: bestScore.ToString("F1", CultureInfo.InvariantCulture),
+            BestScoreDiscipline: bestDiscipline,
+            PerformanceDisciplines: new PerformanceDisciplinesDto(
+                Humanities: perfHumanities.ToString("F1", CultureInfo.InvariantCulture),
+                Nature: perfNature.ToString("F1", CultureInfo.InvariantCulture),
+                Languages: perfLanguages.ToString("F1", CultureInfo.InvariantCulture),
+                Math: perfMath.ToString("F1", CultureInfo.InvariantCulture)),
+            Evolution: evolution);
+    }
+
     // ===================== Helpers =====================
     private static void EnsureAttemptOwnership(ExamAttempt attempt, string? userId, bool anonymous, string? anonymousToken)
     {

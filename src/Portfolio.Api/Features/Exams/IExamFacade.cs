@@ -27,4 +27,9 @@ public interface IExamFacade
         int limit, 
         int offset, 
         CancellationToken ct = default);
+
+    Task<StudentScoreResponse> GetStudentScoreAsync(
+        string? studentId,
+        string? requestingUserId,
+        CancellationToken ct = default);
 }
