@@ -11,7 +11,8 @@ public static class MappingConfig
                 src.Roles, src.TwoFactorEnabled, src.TwoFactorSecret,
                 src.TwoFactorRecoveryCodes, src.AccessFailedCount,
                 src.LockoutEnd, src.LastLoginAt, src.CreatedAt,
-                src.EmailConfirmed, src.TwoFactorEnabledAt
+                src.EmailConfirmed, src.TwoFactorEnabledAt,
+                src.ClassCode
             ));
 
         // Save
@@ -91,6 +92,11 @@ public static class MappingConfig
                 CorrectAlternative = a.CorrectAlternative, 
                 SelectedAlternative = a.SelectedAlternative 
             }).ToList());
+
+        TypeAdapterConfig<TeacherClassDbModel, TeacherClass>.NewConfig()
+            .MapWith(src => TeacherClass.Reconstitute(src.Id, src.TeacherId, src.Code, src.CreatedAt));
+
+        TypeAdapterConfig<TeacherClass, TeacherClassDbModel>.NewConfig();
     }
 
     /// <summary>

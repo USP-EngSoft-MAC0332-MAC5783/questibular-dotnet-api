@@ -30,4 +30,6 @@ public interface IUserRepository
     /// Updates an existing user in the repository.
     /// </summary>
     Task UpdateAsync(Entities.User user, CancellationToken ct);
+
+    Task<IReadOnlyList<Entities.User>> GetStudentsByClassCodeAsync(string classCode, CancellationToken ct);
 }

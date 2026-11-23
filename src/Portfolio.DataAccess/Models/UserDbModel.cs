@@ -16,4 +16,5 @@ internal sealed class UserDbModel
     public DateTime? LockoutEnd { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string? ClassCode { get; set; }
 }

@@ -18,6 +18,7 @@ public sealed class User : EntityMetadata
     public DateTime? LockoutEnd { get; private set; }
     public bool TwoFactorEnabled { get; private set; } // NOSONAR
     public string? TwoFactorSecret { get; private set; } // NOSONAR
+    public string? ClassCode { get; private set; } // NOSONAR
 
     private readonly List<string> _twoFactorRecoveryCodes = [];
     public IReadOnlyCollection<string> TwoFactorRecoveryCodes => _twoFactorRecoveryCodes.AsReadOnly();
@@ -41,7 +42,7 @@ public sealed class User : EntityMetadata
     /// <param name="now">The current UTC date and time, used to set the creation timestamp.</param>
     /// <returns>A newly created <see cref="User"/> instance.</returns>
     /// <exception cref="ArgumentException">Thrown when the provided email is null, empty, or consists only of white-space characters.</exception>
-    public static User Create(string email, string name, string passwordHash, UserRole role, DateTime now)
+    public static User Create(string email, string name, string passwordHash, UserRole role, DateTime now, string? classCode = null)
     {
         if (string.IsNullOrWhiteSpace(email)) throw new ArgumentException("Email inválido.");
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Nome inválido.");
@@ -52,6 +53,7 @@ public sealed class User : EntityMetadata
             Email = email,
             Name = name,
             PasswordHash = passwordHash,
+            ClassCode = TeacherClass.NormalizeCode(classCode),
             CreatedAt = now
         };
 
@@ -82,7 +84,8 @@ public sealed class User : EntityMetadata
         IEnumerable<string> roles, bool twoFactorEnabled, string? twoFactorSecret, 
         IEnumerable<string> recoveryCodes, int accessFailedCount, DateTime? lockoutEnd, 
         DateTime? lastLoginAt, DateTime createdAt,
-        bool emailConfirmed, DateTime? twoFactorEnabledAt)
+        bool emailConfirmed, DateTime? twoFactorEnabledAt,
+        string? classCode = null)
     {
         var user = new User
         {
@@ -97,7 +100,8 @@ public sealed class User : EntityMetadata
             LastLoginAt = lastLoginAt,
             CreatedAt = createdAt,
             EmailConfirmed = emailConfirmed,
-            TwoFactorEnabledAt = twoFactorEnabledAt
+            TwoFactorEnabledAt = twoFactorEnabledAt,
+            ClassCode = classCode
         };
 
         user._roles.AddRange(roles);
@@ -156,5 +160,18 @@ public sealed class User : EntityMetadata
         
         _twoFactorRecoveryCodes.Remove(code);
         return true;
+    }
+
+    public void UpdateProfile(string name, string? classCode)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Nome inválido.");
+
+        Name = name.Trim();
+
+        // Apenas alunos possuem vínculo com código de turma
+        ClassCode = _roles.Contains("student", StringComparer.OrdinalIgnoreCase)
+            ? TeacherClass.NormalizeCode(classCode)
+            : null;
     }
 }

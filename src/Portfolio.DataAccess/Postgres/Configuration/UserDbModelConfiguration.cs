@@ -16,5 +16,8 @@ internal sealed class UserDbModelConfiguration : IEntityTypeConfiguration<UserDb
 
         builder.Property(u => u.PasswordHash).IsRequired();
         builder.Property(u => u.TwoFactorSecret).HasMaxLength(512);
+
+        builder.Property(u => u.ClassCode).HasMaxLength(32);
+        builder.HasIndex(u => u.ClassCode);
     }
 }

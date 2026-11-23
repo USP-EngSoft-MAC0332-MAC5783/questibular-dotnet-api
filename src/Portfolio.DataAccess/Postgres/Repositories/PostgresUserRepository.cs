@@ -90,6 +90,8 @@ internal sealed class PostgresUserRepository : IUserRepository
         if (db is null) return;
 
         db.Email = user.Email;
+        db.Name = user.Name;
+        db.ClassCode = user.ClassCode;
         db.PasswordHash = user.PasswordHash;
         db.Roles = user.Roles.ToList();
         db.TwoFactorEnabled = user.TwoFactorEnabled;
@@ -102,5 +104,20 @@ internal sealed class PostgresUserRepository : IUserRepository
         db.LastLoginAt = user.LastLoginAt;
 
         await _context.SaveChangesAsync(ct);
+    }
+    public async Task<IReadOnlyList<User>> GetStudentsByClassCodeAsync(string classCode, CancellationToken ct)
+    {
+        var normalized = classCode.Trim().ToUpperInvariant();
+
+        var rows = await _context.Users
+            .AsNoTracking()
+            .Where(u => u.ClassCode == normalized)
+            .OrderBy(u => u.Name)
+            .ToListAsync(ct);
+
+        return rows
+            .Select(u => u.Adapt<User>())
+            .Where(u => u.Roles.Contains("student", StringComparer.OrdinalIgnoreCase))
+            .ToList();
     }
 }

@@ -213,6 +213,35 @@ namespace Portfolio.DataAccess.Migrations
                     b.ToTable("RefreshTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Portfolio.DataAccess.Models.TeacherClassDbModel", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TeacherId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("TeacherId");
+
+                    b.ToTable("TeacherClasses", (string)null);
+                });
+
             modelBuilder.Entity("Portfolio.DataAccess.Models.TeacherStudentLinkDbModel", b =>
                 {
                     b.Property<string>("TeacherId")
@@ -236,6 +265,10 @@ namespace Portfolio.DataAccess.Migrations
 
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("integer");
+
+                    b.Property<string>("ClassCode")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -282,6 +315,8 @@ namespace Portfolio.DataAccess.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ClassCode");
+
                     b.HasIndex("Email")
                         .IsUnique();
 
@@ -293,6 +328,15 @@ namespace Portfolio.DataAccess.Migrations
                     b.HasOne("Portfolio.DataAccess.Models.UserDbModel", null)
                         .WithMany()
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Portfolio.DataAccess.Models.TeacherClassDbModel", b =>
+                {
+                    b.HasOne("Portfolio.DataAccess.Models.UserDbModel", null)
+                        .WithMany()
+                        .HasForeignKey("TeacherId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

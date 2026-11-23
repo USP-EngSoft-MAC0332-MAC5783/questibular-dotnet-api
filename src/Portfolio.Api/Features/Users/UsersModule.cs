@@ -5,6 +5,7 @@ public static class UsersModule
     public static IServiceCollection AddUsersFeature(this IServiceCollection services)
     {
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<ITeacherClassService, TeacherClassService>();
         return services;
     }
 }

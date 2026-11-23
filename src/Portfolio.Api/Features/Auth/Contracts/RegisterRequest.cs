@@ -18,4 +18,7 @@ public sealed record RegisterRequest(
     [param: Required(ErrorMessage = "A senha é obrigatória.")]
     [param: MinLength(8, ErrorMessage = "A senha deve ter no mínimo 8 caracteres.")]
     [param: MaxLength(128, ErrorMessage = "A senha deve ter no máximo 128 caracteres.")] 
-    string Password);
+    string Password,
+
+    [param: MaxLength(32, ErrorMessage = "O código da turma deve ter no máximo 32 caracteres.")]
+    string? ClassCode = null);

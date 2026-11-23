@@ -37,6 +37,9 @@ public static class DataAccessExtensions
         services.AddScoped<IExamRepository, PostgresExamRepository>();
         services.AddScoped<IExamAttemptRepository, PostgresExamAttemptRepository>();
 
+        services.AddScoped<ITeacherStudentRepository, PostgresTeacherStudentRepository>();
+        services.AddScoped<ITeacherClassRepository, PostgresTeacherClassRepository>();
+
         return services;
     }
 }
