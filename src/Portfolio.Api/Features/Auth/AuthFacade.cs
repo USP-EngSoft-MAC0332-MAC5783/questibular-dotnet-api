@@ -7,6 +7,7 @@ public sealed partial class AuthFacade : IAuthFacade
     private const string TwoFactorIssuer = "Portfolio.Api";
 
     private readonly IUserRepository _userRepository;
+    private readonly ITeacherClassRepository _teacherClassRepository;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly ITokenGenerator _tokenGenerator;
@@ -18,6 +19,7 @@ public sealed partial class AuthFacade : IAuthFacade
 
     public AuthFacade(
         IUserRepository userRepository,
+        ITeacherClassRepository teacherClassRepository,
         IRefreshTokenRepository refreshTokenRepository,
         IPasswordHasher passwordHasher,
         ITokenGenerator tokenGenerator,
@@ -28,6 +30,7 @@ public sealed partial class AuthFacade : IAuthFacade
         ILogger<AuthFacade> logger)
     {
         _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
+        _teacherClassRepository = teacherClassRepository ?? throw new ArgumentNullException(nameof(teacherClassRepository));
         _refreshTokenRepository = refreshTokenRepository ?? throw new ArgumentNullException(nameof(refreshTokenRepository));
         _passwordHasher = passwordHasher ?? throw new ArgumentNullException(nameof(passwordHasher));
         _tokenGenerator = tokenGenerator ?? throw new ArgumentNullException(nameof(tokenGenerator));
@@ -49,7 +52,16 @@ public sealed partial class AuthFacade : IAuthFacade
             return AuthResult.Fail("Este e-mail já está cadastrado.");
         }
 
-        var user = User.Create(email, name, _passwordHasher.Hash(request.Password), request.Role, _clock.UtcNow);
+        string? normalizedClassCode = null;
+        if (request.Role == UserRole.Student && !string.IsNullOrWhiteSpace(request.ClassCode))
+        {
+            normalizedClassCode = TeacherClass.NormalizeCode(request.ClassCode);
+            var classExists = await _teacherClassRepository.ExistsByCodeAsync(normalizedClassCode!, ct);
+            if (!classExists)
+                return AuthResult.Fail("O código da turma informado não foi encontrado.");
+        }
+
+        var user = User.Create(email, name, _passwordHasher.Hash(request.Password), request.Role, _clock.UtcNow, normalizedClassCode);
 
         await _userRepository.AddAsync(user, ct);
         LogUserRegistered(user.Id, email, ip ?? "unknown");

@@ -68,6 +68,39 @@ public sealed class UserController : BaseApiController<UserController>
         }
     }
 
+    [HttpPut("profile")]
+    [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointSummary("Atualiza o perfil do usuário autenticado")]
+    [EndpointDescription("Permite editar o nome e, para alunos, informar ou alterar o código da turma (ex.: ESC-3A).")]
+    public async Task<ActionResult<UserResponse>> UpdateProfile(
+        [FromBody] UpdateUserProfileRequest request,
+        CancellationToken ct)
+    {
+        var userId = User.FindFirst("sub")?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return ProblemResponse(StatusCodes.Status401Unauthorized, "Autenticação necessária.",
+                "Não foi possível identificar o usuário autenticado.");
+
+        try
+        {
+            var updated = await _users.UpdateProfileAsync(userId, request, ct);
+            return Ok(updated);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return ProblemResponse(StatusCodes.Status404NotFound, "Usuário não encontrado.", ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            return ProblemResponse(StatusCodes.Status400BadRequest, "Dados inválidos.", ex.Message);
+        }
+    }
+
     private ObjectResult ProblemResponse(int status, string title, string detail)
         => new(new ProblemDetails
         {

@@ -14,6 +14,7 @@ internal sealed class PortfolioDbContext : DbContext
     public DbSet<TeacherStudentLinkDbModel> TeacherStudentLinks => Set<TeacherStudentLinkDbModel>();
     public DbSet<ExamDbModel> Exams                 => Set<ExamDbModel>();
     public DbSet<ExamAttemptDbModel> ExamAttempts   => Set<ExamAttemptDbModel>();
+    public DbSet<TeacherClassDbModel> TeacherClasses => Set<TeacherClassDbModel>();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PortfolioDbContext"/> class

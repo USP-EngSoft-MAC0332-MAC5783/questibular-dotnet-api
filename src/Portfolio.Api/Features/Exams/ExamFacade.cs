@@ -430,7 +430,7 @@ public sealed class ExamFacade : IExamFacade
             if (exams.TryGetValue(attempt.ExamId, out var exam))
             {
                 var fullReport = BuildReportResponse(exam, attempt);
-                historyItems.Add(new StudentExamHistoryItem(fullReport.Exam, fullReport.Report));
+                historyItems.Add(new StudentExamHistoryItem(attempt.Id, fullReport.Exam, fullReport.Report));
             }
         }
 

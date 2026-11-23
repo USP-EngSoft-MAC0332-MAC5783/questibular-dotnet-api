@@ -4,4 +4,5 @@ public sealed record UserResponse(
     string Id,
     string Email,
     string Name,
-    IReadOnlyList<string> Roles);
+    IReadOnlyList<string> Roles,
+    string? ClassCode = null);
